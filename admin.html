@@ -12,45 +12,62 @@
         <h2 style="color: #0277BD;">CBT Studio Login</h2>
         <input type="email" id="email" placeholder="E-mail" style="width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box;">
         <input type="password" id="password" placeholder="Senha" style="width: 100%; padding: 10px; margin-bottom: 20px; box-sizing: border-box;">
-        <button id="btn-login" style="width: 100%; padding: 12px; background: #0277BD; color: white; border: none; border-radius: 5px; cursor: pointer;">Entrar</button>
+        <button id="btn-login" style="width: 100%; padding: 12px; background: #0277BD; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Entrar</button>
         <p id="login-error" style="color: red; font-size: 0.9em; display: none;"></p>
     </div>
 
     <!-- TELA DO PAINEL -->
-    <div id="dashboard-screen" style="display: none; max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: left;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="color: #0277BD; margin: 0;">👨‍🏫 Criador de Provas</h2>
+    <div id="dashboard-screen" style="display: none; max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: left;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ECEFF1; padding-bottom: 15px; margin-bottom: 20px;">
+            <h2 style="color: #0277BD; margin: 0;">👨‍🏫 Painel do Professor</h2>
             <button id="btn-logout" style="background: #D32F2F; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">Sair</button>
         </div>
-        
-        <!-- MÓDULO DE INTELIGÊNCIA ARTIFICIAL -->
-        <div style="background: #E3F2FD; padding: 15px; border-radius: 8px; border: 1px solid #BBDEFB; margin-top: 20px;">
-            <h3 style="margin-top: 0; color: #1565C0;">🤖 Gerar Prova com IA (PDF)</h3>
-            
-            <label style="font-weight: bold; display: block; font-size: 0.9em;">Chave da API do Google Gemini:</label>
-            <input type="password" id="gemini-api-key" placeholder="Cole sua API Key aqui" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
-            <p style="font-size: 0.8em; color: #555; margin-top: 5px; margin-bottom: 15px;">*A chave fica salva apenas no seu navegador, nunca no servidor.</p>
 
-            <label style="font-weight: bold; display: block;">Selecione o PDF da matéria:</label>
-            <input type="file" id="pdf-upload" accept="application/pdf" style="margin-top: 5px; display: block; width: 100%;">
-            
-            <button id="btn-gerar-ia" style="background-color: #673AB7; color: white; padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 15px; width: 100%;">Ler PDF e Criar Questões ✨</button>
-            <div id="ai-status" style="text-align: center; margin-top: 10px; font-size: 0.9em; font-weight: bold;"></div>
+        <!-- MENU DE NAVEGAÇÃO INTERNA -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <button id="tab-criar" style="flex: 1; padding: 10px; background: #0288D1; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">📝 Criar Nova Prova</button>
+            <button id="tab-corrigir" style="flex: 1; padding: 10px; background: #FFB300; color: #333; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">✅ Corrigir Pendências</button>
+        </div>
+        
+        <!-- SECÇÃO 1: CRIAR PROVAS (Oculta ou Visível via JS) -->
+        <div id="section-criar">
+            <div style="background: #E3F2FD; padding: 15px; border-radius: 8px; border: 1px solid #BBDEFB;">
+                <h3 style="margin-top: 0; color: #1565C0;">🤖 Gerar Prova com IA (PDF)</h3>
+                <label style="font-weight: bold; display: block; font-size: 0.9em;">Chave da API do Google Gemini (Usada para criar e corrigir):</label>
+                <input type="password" id="gemini-api-key" placeholder="Cole sua API Key aqui" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+                
+                <label style="font-weight: bold; display: block; margin-top: 15px;">Selecione o PDF da matéria:</label>
+                <input type="file" id="pdf-upload" accept="application/pdf" style="margin-top: 5px; display: block; width: 100%;">
+                
+                <button id="btn-gerar-ia" style="background-color: #673AB7; color: white; padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 15px; width: 100%;">Ler PDF e Criar Questões ✨</button>
+                <div id="ai-status" style="text-align: center; margin-top: 10px; font-size: 0.9em; font-weight: bold;"></div>
+            </div>
+
+            <hr style="margin: 25px 0; border: 0; border-top: 1px solid #ccc;">
+
+            <label style="font-weight: bold; display: block;">Nome da Matéria:</label>
+            <input type="text" id="materia-nome" placeholder="Digite o título da prova" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+
+            <label style="font-weight: bold; margin-top: 15px; display: block;">Código JSON da Prova:</label>
+            <textarea id="materia-questoes" rows="10" placeholder='Cole o array JSON gerado aqui...' style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
+
+            <button id="btn-salvar" style="background-color: #4CAF50; color: white; padding: 15px; border: none; width: 100%; border-radius: 5px; font-size: 1.2em; margin-top: 20px; cursor: pointer; font-weight: bold;">Publicar Prova no App dos Alunos ☁️</button>
+            <div id="status" style="text-align: center; margin-top: 15px; font-weight: bold;"></div>
         </div>
 
-        <hr style="margin: 25px 0; border: 0; border-top: 1px solid #ccc;">
+        <!-- SECÇÃO 2: CORREÇÃO (Oculta por padrão) -->
+        <div id="section-corrigir" style="display: none;">
+            <h3 style="color: #E65100; margin-top: 0;">⏳ Alunos Aguardando Correção</h3>
+            <button id="btn-carregar-pendencias" style="background: #ECEFF1; border: 1px solid #ccc; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-bottom: 15px;">Atualizar Lista 🔄</button>
+            
+            <div id="lista-pendencias" style="display: flex; flex-direction: column; gap: 15px;">
+                <p style="color: #757575;">Clique em 'Atualizar Lista' para buscar provas.</p>
+            </div>
+        </div>
 
-        <label style="font-weight: bold; display: block;">Nome da Matéria (Ex: História - O Egito):</label>
-        <input type="text" id="materia-nome" placeholder="Digite o título da prova" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
-
-        <label style="font-weight: bold; margin-top: 15px; display: block;">Código JSON da Prova (Gerado acima):</label>
-        <textarea id="materia-questoes" rows="10" placeholder='Aguardando IA...' style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
-
-        <button id="btn-salvar" style="background-color: #4CAF50; color: white; padding: 15px; border: none; width: 100%; border-radius: 5px; font-size: 1.2em; margin-top: 20px; cursor: pointer; font-weight: bold;">Publicar Prova no App dos Alunos ☁️</button>
-        <div id="status" style="text-align: center; margin-top: 15px; font-weight: bold;"></div>
     </div>
 
-    <!-- Script tipo module -->
     <script type="module" src="./admin.js"></script>
 </body>
 </html>
