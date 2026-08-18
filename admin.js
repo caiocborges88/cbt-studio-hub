@@ -53,7 +53,17 @@ btnLogout.addEventListener('click', async () => {
 });
 
 // ----------------------------------------------------
-// MOTOR DE INTELIGÊNCIA ARTIFICIAL (PDF -> GEMINI)
+// FUNÇÃO AUXILIAR: Converter Arquivo para Envio Seguro
+// ----------------------------------------------------
+const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = error => reject(error);
+});
+
+// ----------------------------------------------------
+// MOTOR DE INTELIGÊNCIA ARTIFICIAL (VISÃO DO GEMINI)
 // ----------------------------------------------------
 btnGerarIA.addEventListener('click', async () => {
     const apiKey = apiKeyInput.value.trim();
@@ -69,46 +79,56 @@ btnGerarIA.addEventListener('click', async () => {
     }
 
     const file = fileInput.files[0];
-    aiStatus.innerHTML = "<span style='color:blue;'>Lendo o arquivo PDF... 📄</span>";
+    
+    // Trava de segurança para arquivos gigantes (Limite de 15MB para a API)
+    if (file.size > 15 * 1024 * 1024) {
+        aiStatus.innerHTML = "<span style='color:red;'>O arquivo é muito grande (máximo 15MB). Divida o PDF em partes menores.</span>";
+        return;
+    }
+
+    aiStatus.innerHTML = "<span style='color:blue;'>Enviando o documento para análise da IA (Isso leva cerca de 1 minuto)... 🧠⏳</span>";
     btnGerarIA.disabled = true;
 
     try {
-        // 1. Extrair Texto do PDF
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
-        let extractedText = "";
+        // 1. Converter PDF em dados brutos
+        const base64Pdf = await fileToBase64(file);
 
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map(item => item.str).join(" ");
-            extractedText += pageText + "\n";
-        }
+        // 2. Prompt Blindado
+        const prompt = `Você é um professor especialista elaborando uma avaliação escolar. Leia o documento PDF em anexo (ele contém páginas escaneadas) e crie 25 questões de múltipla escolha baseadas EXCLUSIVAMENTE nos assuntos, textos e imagens matemáticas deste documento.
+        
+        CRÍTICO: NUNCA crie perguntas sobre as regras de formatação abaixo. O assunto da prova DEVE ser o assunto do PDF.
 
-        // 2. Enviar para a Inteligência Artificial com Fallback Automático
-        const prompt = `Atue como um gerador de sistemas educacionais. Crie 25 questões de múltipla escolha baseadas EXCLUSIVAMENTE neste material: \n\n${extractedText.substring(0, 30000)}\n\nRegras:\n1. 4 opções por questão.\n2. Retorne ESTRITAMENTE um array JSON, sem marcações Markdown, sem texto antes ou depois.\n3. Formato:\n[ { "q": "Pergunta?", "options": ["A", "B", "C", "D"], "answer": 1 } ]`;
+        Regras de Saída:
+        1. 4 opções de resposta por questão.
+        2. Retorne ESTRITAMENTE um array JSON válido.
+        3. Sem marcações Markdown (\`\`\`json), sem textos de introdução.
+        4. Formato exato:
+        [ { "q": "Pergunta 1?", "options": ["A", "B", "C", "D"], "answer": 1 } ]`;
 
-        // Lista de modelos para tentar em ordem de prioridade
+        // 3. Sistema de Fallback com modelos Multimodais que você tem acesso
         const modelosDeReserva = [
-            'gemini-3.1-flash-lite',
-            'gemini-3.5-flash-lite',
             'gemini-2.5-flash',
-            'gemini-pro-latest'
+            'gemini-2.5-pro',
+            'gemini-flash-latest'
         ];
 
         let iaResponseText = "";
         let sucesso = false;
 
         for (const modelo of modelosDeReserva) {
-            aiStatus.innerHTML = `<span style='color:blue;'>Conectando ao motor ${modelo}... 🧠⏳</span>`;
+            aiStatus.innerHTML = `<span style='color:blue;'>Processando as imagens com o motor ${modelo}... 🧠⏳</span>`;
             
             try {
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }]
+                        contents: [{
+                            parts: [
+                                { text: prompt },
+                                { inlineData: { mimeType: "application/pdf", data: base64Pdf } }
+                            ]
+                        }]
                     })
                 });
 
@@ -117,25 +137,24 @@ btnGerarIA.addEventListener('click', async () => {
                 if (response.ok && data.candidates && data.candidates.length > 0) {
                     iaResponseText = data.candidates[0].content.parts[0].text;
                     sucesso = true;
-                    break; // Sai do loop se a resposta for bem-sucedida
+                    break;
                 } else {
-                    console.warn(`Motor ${modelo} indisponível. Tentando o próximo...`);
+                    console.warn(`Sobrecarga no motor ${modelo}, tentando o próximo rota...`);
                 }
             } catch (err) {
-                console.warn(`Falha na conexão com ${modelo}:`, err);
+                console.warn(`Erro na rota ${modelo}:`, err);
             }
         }
 
         if (!sucesso) {
-            throw new Error("Todos os motores do Google estão sobrecarregados no momento. Tente novamente em alguns minutos.");
+            throw new Error("Todos os motores do Google falharam ou estão cheios. Tente novamente.");
         }
-        
-        // Sanitização: Remover formatação Markdown residual da IA
+
+        // 4. Limpeza e Validação
         iaResponseText = iaResponseText.replace(/```json/gi, '').replace(/```/g, '').trim();
 
-        // 3. Imprimir Resultado
         document.getElementById('materia-questoes').value = iaResponseText;
-        aiStatus.innerHTML = "<span style='color:green;'>✅ Questões geradas com sucesso! Verifique abaixo e clique em Publicar.</span>";
+        aiStatus.innerHTML = "<span style='color:green;'>✅ Questões geradas com sucesso! A IA conseguiu ler os exercícios.</span>";
 
     } catch (error) {
         console.error(error);
