@@ -86,26 +86,49 @@ btnGerarIA.addEventListener('click', async () => {
             extractedText += pageText + "\n";
         }
 
-        // 2. Enviar para a Inteligência Artificial
-        aiStatus.innerHTML = "<span style='color:blue;'>PDF processado! A IA está gerando as 25 questões (Aguarde até 1 minuto)... 🧠⏳</span>";
-        
+        // 2. Enviar para a Inteligência Artificial com Fallback Automático
         const prompt = `Atue como um gerador de sistemas educacionais. Crie 25 questões de múltipla escolha baseadas EXCLUSIVAMENTE neste material: \n\n${extractedText.substring(0, 30000)}\n\nRegras:\n1. 4 opções por questão.\n2. Retorne ESTRITAMENTE um array JSON, sem marcações Markdown, sem texto antes ou depois.\n3. Formato:\n[ { "q": "Pergunta?", "options": ["A", "B", "C", "D"], "answer": 1 } ]`;
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
-        });
+        // Lista de modelos para tentar em ordem de prioridade
+        const modelosDeReserva = [
+            'gemini-3.1-flash-lite',
+            'gemini-3.5-flash-lite',
+            'gemini-2.5-flash',
+            'gemini-pro-latest'
+        ];
 
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.error?.message || "Erro na comunicação com a API do Google.");
+        let iaResponseText = "";
+        let sucesso = false;
+
+        for (const modelo of modelosDeReserva) {
+            aiStatus.innerHTML = `<span style='color:blue;'>Conectando ao motor ${modelo}... 🧠⏳</span>`;
+            
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }]
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.candidates && data.candidates.length > 0) {
+                    iaResponseText = data.candidates[0].content.parts[0].text;
+                    sucesso = true;
+                    break; // Sai do loop se a resposta for bem-sucedida
+                } else {
+                    console.warn(`Motor ${modelo} indisponível. Tentando o próximo...`);
+                }
+            } catch (err) {
+                console.warn(`Falha na conexão com ${modelo}:`, err);
+            }
         }
 
-        let iaResponseText = data.candidates[0].content.parts[0].text;
+        if (!sucesso) {
+            throw new Error("Todos os motores do Google estão sobrecarregados no momento. Tente novamente em alguns minutos.");
+        }
         
         // Sanitização: Remover formatação Markdown residual da IA
         iaResponseText = iaResponseText.replace(/```json/gi, '').replace(/```/g, '').trim();
