@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CBT Studio - Painel Admin</title>
-    <!-- O CSS será configurado no próximo passo, por enquanto usaremos estilos básicos nativos -->
+    <!-- Biblioteca para ler PDF no navegador -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body style="font-family: Arial, sans-serif; background-color: #ECEFF1; padding: 20px; text-align: center;">
 
@@ -17,21 +18,37 @@
         <p id="login-error" style="color: red; font-size: 0.9em; display: none;"></p>
     </div>
 
-    <!-- TELA DO PAINEL (Oculta por padrão) -->
+    <!-- TELA DO PAINEL -->
     <div id="dashboard-screen" style="display: none; max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: left;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h2 style="color: #0277BD; margin: 0;">👨‍🏫 Criador de Provas</h2>
             <button id="btn-logout" style="background: #D32F2F; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">Sair</button>
         </div>
-        <p>Insira novas matérias no sistema.</p>
         
-        <label style="font-weight: bold; margin-top: 15px; display: block;">Nome da Matéria (Ex: História - O Egito):</label>
+        <!-- MÓDULO DE INTELIGÊNCIA ARTIFICIAL -->
+        <div style="background: #E3F2FD; padding: 15px; border-radius: 8px; border: 1px solid #BBDEFB; margin-top: 20px;">
+            <h3 style="margin-top: 0; color: #1565C0;">🤖 Gerar Prova com IA (PDF)</h3>
+            
+            <label style="font-weight: bold; display: block; font-size: 0.9em;">Chave da API do Google Gemini:</label>
+            <input type="password" id="gemini-api-key" placeholder="Cole sua API Key aqui" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+            <p style="font-size: 0.8em; color: #555; margin-top: 5px; margin-bottom: 15px;">*A chave fica salva apenas no seu navegador, nunca no servidor.</p>
+
+            <label style="font-weight: bold; display: block;">Selecione o PDF da matéria:</label>
+            <input type="file" id="pdf-upload" accept="application/pdf" style="margin-top: 5px; display: block; width: 100%;">
+            
+            <button id="btn-gerar-ia" style="background-color: #673AB7; color: white; padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 15px; width: 100%;">Ler PDF e Criar Questões ✨</button>
+            <div id="ai-status" style="text-align: center; margin-top: 10px; font-size: 0.9em; font-weight: bold;"></div>
+        </div>
+
+        <hr style="margin: 25px 0; border: 0; border-top: 1px solid #ccc;">
+
+        <label style="font-weight: bold; display: block;">Nome da Matéria (Ex: História - O Egito):</label>
         <input type="text" id="materia-nome" placeholder="Digite o título da prova" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
 
-        <label style="font-weight: bold; margin-top: 15px; display: block;">Cole o código JSON gerado pela IA:</label>
-        <textarea id="materia-questoes" rows="10" placeholder='[ { "q": "Pergunta?", "options": ["A", "B", "C", "D"], "answer": 1 } ]' style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
+        <label style="font-weight: bold; margin-top: 15px; display: block;">Código JSON da Prova (Gerado acima):</label>
+        <textarea id="materia-questoes" rows="10" placeholder='Aguardando IA...' style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
 
-        <button id="btn-salvar" style="background-color: #4CAF50; color: white; padding: 15px; border: none; width: 100%; border-radius: 5px; font-size: 1.2em; margin-top: 20px; cursor: pointer; font-weight: bold;">Salvar Prova na Nuvem ☁️</button>
+        <button id="btn-salvar" style="background-color: #4CAF50; color: white; padding: 15px; border: none; width: 100%; border-radius: 5px; font-size: 1.2em; margin-top: 20px; cursor: pointer; font-weight: bold;">Publicar Prova no App dos Alunos ☁️</button>
         <div id="status" style="text-align: center; margin-top: 15px; font-weight: bold;"></div>
     </div>
 
