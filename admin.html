@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBT Studio - Painel Admin</title>
+    <!-- O CSS será configurado no próximo passo, por enquanto usaremos estilos básicos nativos -->
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #ECEFF1; padding: 20px; text-align: center;">
+
+    <!-- TELA DE LOGIN -->
+    <div id="login-screen" style="max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+        <h2 style="color: #0277BD;">CBT Studio Login</h2>
+        <input type="email" id="email" placeholder="E-mail" style="width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box;">
+        <input type="password" id="password" placeholder="Senha" style="width: 100%; padding: 10px; margin-bottom: 20px; box-sizing: border-box;">
+        <button id="btn-login" style="width: 100%; padding: 12px; background: #0277BD; color: white; border: none; border-radius: 5px; cursor: pointer;">Entrar</button>
+        <p id="login-error" style="color: red; font-size: 0.9em; display: none;"></p>
+    </div>
+
+    <!-- TELA DO PAINEL (Oculta por padrão) -->
+    <div id="dashboard-screen" style="display: none; max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: left;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="color: #0277BD; margin: 0;">👨‍🏫 Criador de Provas</h2>
+            <button id="btn-logout" style="background: #D32F2F; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">Sair</button>
+        </div>
+        <p>Insira novas matérias no sistema.</p>
+        
+        <label style="font-weight: bold; margin-top: 15px; display: block;">Nome da Matéria (Ex: História - O Egito):</label>
+        <input type="text" id="materia-nome" placeholder="Digite o título da prova" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+
+        <label style="font-weight: bold; margin-top: 15px; display: block;">Cole o código JSON gerado pela IA:</label>
+        <textarea id="materia-questoes" rows="10" placeholder='[ { "q": "Pergunta?", "options": ["A", "B", "C", "D"], "answer": 1 } ]' style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
+
+        <button id="btn-salvar" style="background-color: #4CAF50; color: white; padding: 15px; border: none; width: 100%; border-radius: 5px; font-size: 1.2em; margin-top: 20px; cursor: pointer; font-weight: bold;">Salvar Prova na Nuvem ☁️</button>
+        <div id="status" style="text-align: center; margin-top: 15px; font-weight: bold;"></div>
+    </div>
+
+    <!-- Script tipo module -->
+    <script type="module" src="./admin.js"></script>
+</body>
+</html>

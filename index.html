@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBT Studio - Portal do Aluno</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1>🏆 Desafio de Conhecimento 🏆</h1>
+
+    <!-- ECRÃ 1: MENU DE PROVAS -->
+    <div class="container" id="menu-screen">
+        <h2>Escolha uma Matéria</h2>
+        <p style="text-align: center;">Carregando provas do sistema...</p>
+        <div id="test-list"></div>
+    </div>
+
+    <!-- ECRÃ 2: LOGIN DO ALUNO E RANKING -->
+    <div class="container hidden" id="login-screen">
+        <button onclick="location.reload()" style="background:none; border:none; color:#0277BD; cursor:pointer; text-decoration:underline;">⬅ Voltar ao Menu</button>
+        <h2 id="selected-test-title">Matéria Selecionada</h2>
+        <p style="text-align: center; font-size: 1.2em;">Você tem <strong>15 minutos</strong> para responder e um limite de <strong>2 tentativas</strong>. Se o tempo esgotar, respostas certas valem <strong>-1 ponto</strong>.</p>
+        
+        <div class="input-section">
+            <input type="text" id="player-name" placeholder="Digite o seu nome" maxlength="15" autocomplete="off">
+            <input type="number" id="player-age" placeholder="Sua idade" min="1" max="99" autocomplete="off">
+            <button class="action-btn" id="btn-start">Começar o Jogo!</button>
+        </div>
+
+        <div id="initial-leaderboard" style="margin-top: 40px;">
+            <h3 style="text-align: center; color: #0277BD;">🏅 Ranking Atual 🏅</h3>
+            <table class="leaderboard">
+                <thead>
+                    <tr><th>Posição</th><th>Jogador (Idade)</th><th>Pontuação</th><th>Tempo</th></tr>
+                </thead>
+                <tbody id="initial-leaderboard-body">
+                    <tr><td colspan='4'>A carregar ranking... ☁️</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ECRÃ 3: O QUIZ -->
+    <div class="container hidden" id="quiz-screen">
+        <div class="global-timer-container" id="global-timer">Tempo Restante: 15:00</div>
+        <div class="header-info">
+            <div id="display-name">Jogador: ---</div>
+            <div id="display-score">Pontos: 0</div>
+            <div id="display-progress">1 / X</div>
+        </div>
+        <div class="question" id="question-text">Pergunta...</div>
+        <div class="options" id="options-container"></div>
+        <div id="feedback"></div>
+        <button class="action-btn hidden" id="next-btn" style="margin-top: 20px; max-width: 100%;">Avançar ➡️</button>
+    </div>
+
+    <!-- ECRÃ 4: RESULTADO -->
+    <div class="container hidden" id="result-screen">
+        <h2>Fim do Jogo!</h2>
+        <h3 style="text-align: center; font-size: 2em; color: #E65100;" id="final-score-text"></h3>
+        
+        <h2 style="margin-top: 30px;">🏅 Pódio Final 🏅</h2>
+        <table class="leaderboard">
+            <thead>
+                <tr><th>Posição</th><th>Jogador (Idade)</th><th>Pontuação</th><th>Tempo</th></tr>
+            </thead>
+            <tbody id="leaderboard-body"></tbody>
+        </table>
+        <button class="action-btn" style="margin-top: 30px; max-width: 100%;" onclick="location.reload()">Escolher Outra Prova</button>
+    </div>
+
+    <div class="footer">CBT STUDIO</div>
+
+    <!-- SCRIPT DA APLICAÇÃO -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
