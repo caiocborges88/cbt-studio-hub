@@ -126,7 +126,7 @@ function formatTimeDisplay(totalSeconds) {
     return `${Math.floor(totalSeconds / 60)}m ${totalSeconds % 60}s`;
 }
 
-// 5. Exibição e Validação de Questões
+// 5. Exibição e Validação de Questões (Híbrido)
 function loadQuestion() {
     document.getElementById('next-btn').classList.add('hidden');
     document.getElementById('feedback').innerText = "";
@@ -135,13 +135,36 @@ function loadQuestion() {
     const q = questions[currentQuestion];
     document.getElementById('question-text').innerText = q.q;
     
-    let optionsHtml = "";
-    q.options.forEach((opt, index) => {
-        optionsHtml += `<button onclick="window.submitAnswer(${index})">${opt}</button>`;
-    });
-    document.getElementById('options-container').innerHTML = optionsHtml;
+    const optionsContainer = document.getElementById('options-container');
+    const dissertativeContainer = document.getElementById('dissertative-container');
+    
+    // Verifica se a questão possui a matriz de opções (Múltipla Escolha)
+    if (q.options && Array.isArray(q.options) && q.options.length > 0) {
+        optionsContainer.classList.remove('hidden');
+        dissertativeContainer.classList.add('hidden');
+        
+        let optionsHtml = "";
+        q.options.forEach((opt, index) => {
+            optionsHtml += `<button onclick="window.submitAnswer(${index})">${opt}</button>`;
+        });
+        optionsContainer.innerHTML = optionsHtml;
+    } 
+    // Caso contrário, é uma questão Dissertativa
+    else {
+        optionsContainer.classList.add('hidden');
+        dissertativeContainer.classList.remove('hidden');
+        
+        // Limpa os campos da questão anterior
+        document.getElementById('text-answer').value = "";
+        document.getElementById('photo-answer').value = "";
+        
+        document.getElementById('text-answer').disabled = false;
+        document.getElementById('photo-answer').disabled = false;
+        document.getElementById('btn-submit-dissertative').classList.remove('hidden');
+    }
 }
 
+// Lógica de Envio para Questões de Múltipla Escolha
 window.submitAnswer = function(selectedIndex) {
     const q = questions[currentQuestion];
     const feedback = document.getElementById('feedback');
@@ -167,6 +190,37 @@ window.submitAnswer = function(selectedIndex) {
     document.getElementById('next-btn').classList.remove('hidden');
 };
 
+// Lógica de Envio para Questões Dissertativas
+document.getElementById('btn-submit-dissertative').addEventListener('click', () => {
+    const textVal = document.getElementById('text-answer').value.trim();
+    const fileVal = document.getElementById('photo-answer').files.length;
+    const feedback = document.getElementById('feedback');
+
+    if (!textVal && fileVal === 0) {
+        alert("Por favor, digite uma resposta ou envie uma foto do seu caderno!");
+        return;
+    }
+
+    // Trava os botões após o envio
+    document.getElementById('text-answer').disabled = true;
+    document.getElementById('photo-answer').disabled = true;
+    document.getElementById('btn-submit-dissertative').classList.add('hidden');
+    
+    // Concede pontuação padrão para o aluno poder prosseguir (a correção IA real virá na fase de Backend)
+    if (isTimeUp) {
+        score -= 1;
+    } else {
+        score += 100; 
+    }
+    
+    feedback.innerText = `✅ Resposta registrada! (Aguardando correção do professor)`;
+    feedback.style.color = "#2E7D32";
+    
+    document.getElementById('display-score').innerText = `Pontos: ${score}`;
+    document.getElementById('next-btn').classList.remove('hidden');
+});
+
+// Avançar para a próxima questão
 document.getElementById('next-btn').addEventListener('click', () => {
     currentQuestion++;
     if (currentQuestion >= questions.length) {
@@ -203,18 +257,16 @@ async function endGame() {
     await fetchAndRenderLeaderboard('leaderboard-body');
 }
 
-// 7. Buscar e Ordenar Ranking (Corrigido: Ordenação pelo Cliente - Ponto Cego Resolvido)
+// 7. Buscar e Ordenar Ranking 
 async function fetchAndRenderLeaderboard(tbodyId) {
     let tbody = document.getElementById(tbodyId);
     try {
-        // Busca TODAS as notas desta prova específica sem exigir índices de composição
         const q = query(collection(db, "cbt_rankings"), where("testId", "==", activeTest.id));
         const querySnapshot = await getDocs(q);
         
         let scores = [];
         querySnapshot.forEach(doc => scores.push(doc.data()));
 
-        // Ordenação client-side: 1º Pontos Decrescente, 2º Tempo Crescente
         scores.sort((a, b) => {
             if (b.points === a.points) return a.time - b.time;
             return b.points - a.points;
@@ -223,7 +275,6 @@ async function fetchAndRenderLeaderboard(tbodyId) {
         tbody.innerHTML = "";
         let i = 0;
         
-        // Exibir o Top 10
         for(let s of scores.slice(0, 10)) {
             let isCurrent = (s.name === playerName && s.points === score && playerName !== "") ? 'class="highlight"' : '';
             let medal = (i === 0) ? "🥇 1º" : (i === 1) ? "🥈 2º" : (i === 2) ? "🥉 3º" : `${i + 1}º`;
