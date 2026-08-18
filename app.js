@@ -15,11 +15,42 @@ let playerName = "";
 let playerAge = "";
 let currentQuestion = 0;
 let score = 0;
+let dissertativeAnswers = []; // Guarda as fotos e textos do aluno
 
 const TOTAL_TIME = 900; // 15 Minutos
 let timeRemaining = TOTAL_TIME;
 let globalTimerInterval;
 let isTimeUp = false;
+
+// Função Auxiliar: Comprimir foto para economizar espaço no Banco de Dados
+const compressImage = (file) => new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let { width, height } = img;
+            // Limita o tamanho máximo a 800px para manter leveza
+            if (width > 800 || height > 800) {
+                if (width > height) {
+                    height = Math.floor(height * (800 / width));
+                    width = 800;
+                } else {
+                    width = Math.floor(width * (800 / height));
+                    height = 800;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            // Retorna apenas os dados da imagem comprimida (Base64)
+            resolve(canvas.toDataURL('image/jpeg', 0.6).split(',')[1]);
+        };
+    };
+});
 
 // 1. Inicialização: Buscar Provas ao abrir a página
 async function loadTests() {
@@ -37,7 +68,6 @@ async function loadTests() {
             const btn = document.createElement('button');
             btn.className = "btn-test";
             btn.innerText = testData.title;
-            // Ao clicar, prepara o ambiente para essa prova específica
             btn.onclick = () => selectTest(doc.id, testData.title, testData.questions);
             testListDiv.appendChild(btn);
         });
@@ -48,7 +78,7 @@ async function loadTests() {
     }
 }
 
-// 2. Selecionar Prova e Ir para o Login
+// 2. Selecionar Prova
 function selectTest(id, title, testQuestions) {
     activeTest = { id, title };
     questions = testQuestions;
@@ -60,7 +90,7 @@ function selectTest(id, title, testQuestions) {
     fetchAndRenderLeaderboard('initial-leaderboard-body');
 }
 
-// 3. Iniciar Jogo (Controle de Tentativas)
+// 3. Iniciar Jogo
 document.getElementById('btn-start').addEventListener('click', () => {
     const nameInput = document.getElementById('player-name').value.trim();
     const ageInput = document.getElementById('player-age').value.trim();
@@ -70,7 +100,6 @@ document.getElementById('btn-start').addEventListener('click', () => {
         return;
     }
 
-    // Controle local atrelado ao ID da prova (2 tentativas por prova)
     const storageKey = `attempts_${activeTest.id}`;
     let attemptsObj = JSON.parse(localStorage.getItem(storageKey)) || {};
     let currentAttempts = attemptsObj[nameInput] || 0;
@@ -85,6 +114,9 @@ document.getElementById('btn-start').addEventListener('click', () => {
 
     playerName = nameInput;
     playerAge = ageInput;
+    dissertativeAnswers = []; // Zera as respostas para um novo jogo
+    score = 0;
+    currentQuestion = 0;
     
     loginScreen.classList.add('hidden');
     quizScreen.classList.remove('hidden');
@@ -126,7 +158,7 @@ function formatTimeDisplay(totalSeconds) {
     return `${Math.floor(totalSeconds / 60)}m ${totalSeconds % 60}s`;
 }
 
-// 5. Exibição e Validação de Questões (Híbrido)
+// 5. Exibição Híbrida (Múltipla Escolha / Dissertativa)
 function loadQuestion() {
     document.getElementById('next-btn').classList.add('hidden');
     document.getElementById('feedback').innerText = "";
@@ -138,7 +170,6 @@ function loadQuestion() {
     const optionsContainer = document.getElementById('options-container');
     const dissertativeContainer = document.getElementById('dissertative-container');
     
-    // Verifica se a questão possui a matriz de opções (Múltipla Escolha)
     if (q.options && Array.isArray(q.options) && q.options.length > 0) {
         optionsContainer.classList.remove('hidden');
         dissertativeContainer.classList.add('hidden');
@@ -148,13 +179,10 @@ function loadQuestion() {
             optionsHtml += `<button onclick="window.submitAnswer(${index})">${opt}</button>`;
         });
         optionsContainer.innerHTML = optionsHtml;
-    } 
-    // Caso contrário, é uma questão Dissertativa
-    else {
+    } else {
         optionsContainer.classList.add('hidden');
         dissertativeContainer.classList.remove('hidden');
         
-        // Limpa os campos da questão anterior
         document.getElementById('text-answer').value = "";
         document.getElementById('photo-answer').value = "";
         
@@ -164,7 +192,7 @@ function loadQuestion() {
     }
 }
 
-// Lógica de Envio para Questões de Múltipla Escolha
+// Envio de Múltipla Escolha
 window.submitAnswer = function(selectedIndex) {
     const q = questions[currentQuestion];
     const feedback = document.getElementById('feedback');
@@ -190,10 +218,11 @@ window.submitAnswer = function(selectedIndex) {
     document.getElementById('next-btn').classList.remove('hidden');
 };
 
-// Lógica de Envio para Questões Dissertativas
-document.getElementById('btn-submit-dissertative').addEventListener('click', () => {
+// Envio de Questão Dissertativa (Assíncrono com Compressão)
+document.getElementById('btn-submit-dissertative').addEventListener('click', async () => {
     const textVal = document.getElementById('text-answer').value.trim();
-    const fileVal = document.getElementById('photo-answer').files.length;
+    const photoInput = document.getElementById('photo-answer');
+    const fileVal = photoInput.files.length;
     const feedback = document.getElementById('feedback');
 
     if (!textVal && fileVal === 0) {
@@ -201,12 +230,27 @@ document.getElementById('btn-submit-dissertative').addEventListener('click', () 
         return;
     }
 
-    // Trava os botões após o envio
     document.getElementById('text-answer').disabled = true;
-    document.getElementById('photo-answer').disabled = true;
+    photoInput.disabled = true;
     document.getElementById('btn-submit-dissertative').classList.add('hidden');
     
-    // Concede pontuação padrão para o aluno poder prosseguir (a correção IA real virá na fase de Backend)
+    feedback.innerText = "Processando imagem... ⏳";
+    feedback.style.color = "#0277BD";
+
+    let base64Photo = null;
+    if (fileVal > 0) {
+        base64Photo = await compressImage(photoInput.files[0]);
+    }
+
+    // Salva a resposta no array em memória
+    dissertativeAnswers.push({
+        questionIndex: currentQuestion + 1,
+        questionText: questions[currentQuestion].q,
+        gabarito: questions[currentQuestion].gabarito || "Sem gabarito registrado",
+        textAnswer: textVal,
+        photoBase64: base64Photo
+    });
+    
     if (isTimeUp) {
         score -= 1;
     } else {
@@ -220,7 +264,7 @@ document.getElementById('btn-submit-dissertative').addEventListener('click', () 
     document.getElementById('next-btn').classList.remove('hidden');
 });
 
-// Avançar para a próxima questão
+// Avançar questão
 document.getElementById('next-btn').addEventListener('click', () => {
     currentQuestion++;
     if (currentQuestion >= questions.length) {
@@ -231,7 +275,7 @@ document.getElementById('next-btn').addEventListener('click', () => {
     }
 });
 
-// 6. Fim de Jogo e Salvar no Ranking
+// 6. Fim de Jogo e Salvar no Ranking com as Respostas Inclusas
 async function endGame() {
     quizScreen.classList.add('hidden');
     resultScreen.classList.remove('hidden');
@@ -239,16 +283,19 @@ async function endGame() {
     let timeSpent = TOTAL_TIME - timeRemaining;
     if(timeSpent < 0) timeSpent = TOTAL_TIME;
 
-    document.getElementById('final-score-text').innerHTML = `${playerName}, fez <strong>${score} pontos</strong><br><span style="font-size: 0.6em; color: #757575;">em ${formatTimeDisplay(timeSpent)}!</span>`;
+    document.getElementById('final-score-text').innerHTML = `${playerName}, fez <strong>${score} pontos provisórios</strong><br><span style="font-size: 0.6em; color: #757575;">em ${formatTimeDisplay(timeSpent)}!</span>`;
     document.getElementById('leaderboard-body').innerHTML = "<tr><td colspan='4'>A gravar e ordenar ranking... ☁️</td></tr>";
     
     try {
         await addDoc(collection(db, "cbt_rankings"), {
-            testId: activeTest.id,  // Vincula a nota à prova específica
+            testId: activeTest.id,
             name: playerName,
             age: playerAge,
             points: score,
-            time: timeSpent
+            time: timeSpent,
+            // Novo: Enviando as provas escritas para a nuvem
+            dissertativeAnswers: dissertativeAnswers,
+            status: dissertativeAnswers.length > 0 ? "Pendente" : "Corrigido"
         });
     } catch (e) {
         console.error("Erro ao salvar nota: ", e);
@@ -279,11 +326,14 @@ async function fetchAndRenderLeaderboard(tbodyId) {
             let isCurrent = (s.name === playerName && s.points === score && playerName !== "") ? 'class="highlight"' : '';
             let medal = (i === 0) ? "🥇 1º" : (i === 1) ? "🥈 2º" : (i === 2) ? "🥉 3º" : `${i + 1}º`;
             
+            // Adiciona uma etiqueta visual se a nota do aluno puder mudar
+            let pendingBadge = s.status === "Pendente" ? " ⏳" : "";
+
             tbody.innerHTML += `
                 <tr ${isCurrent}>
                     <td>${medal}</td>
                     <td>${s.name} (${s.age} anos)</td>
-                    <td>${s.points}</td>
+                    <td>${s.points}${pendingBadge}</td>
                     <td>${formatTimeDisplay(s.time)}</td>
                 </tr>`;
             i++;
@@ -296,5 +346,4 @@ async function fetchAndRenderLeaderboard(tbodyId) {
     }
 }
 
-// Inicializa a aplicação ao abrir
 window.onload = loadTests;
