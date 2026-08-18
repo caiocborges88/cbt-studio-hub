@@ -91,7 +91,7 @@ btnGerarIA.addEventListener('click', async () => {
         
         const prompt = `Atue como um gerador de sistemas educacionais. Crie 25 questões de múltipla escolha baseadas EXCLUSIVAMENTE neste material: \n\n${extractedText.substring(0, 30000)}\n\nRegras:\n1. 4 opções por questão.\n2. Retorne ESTRITAMENTE um array JSON, sem marcações Markdown, sem texto antes ou depois.\n3. Formato:\n[ { "q": "Pergunta?", "options": ["A", "B", "C", "D"], "answer": 1 } ]`;
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
