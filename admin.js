@@ -80,9 +80,9 @@ btnGerarIA.addEventListener('click', async () => {
 
     const file = fileInput.files[0];
     
-    // Trava de segurança para arquivos gigantes (Limite de 15MB para a API)
-    if (file.size > 15 * 1024 * 1024) {
-        aiStatus.innerHTML = "<span style='color:red;'>O arquivo é muito grande (máximo 15MB). Divida o PDF em partes menores.</span>";
+    // Trava de segurança estendida para 30MB
+    if (file.size > 30 * 1024 * 1024) {
+        aiStatus.innerHTML = "<span style='color:red;'>O arquivo ultrapassa 30MB. Por favor, comprima o arquivo em sites como 'ilovepdf.com' antes de enviar.</span>";
         return;
     }
 
