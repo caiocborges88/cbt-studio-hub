@@ -33,34 +33,33 @@
         <!-- SECÇÃO 1: CRIAR PROVAS -->
         <div id="section-criar">
             <div style="background: #E3F2FD; padding: 15px; border-radius: 8px; border: 1px solid #BBDEFB;">
-                <h3 style="margin-top: 0; color: #1565C0;">🤖 Gerar Prova com IA (PDF)</h3>
+                <h3 style="margin-top: 0; color: #1565C0;">🤖 Criador Automatizado de Provas</h3>
+                
                 <label style="font-weight: bold; display: block; font-size: 0.9em;">Chave da API do Google Gemini (Usada para criar e corrigir):</label>
                 <input type="password" id="gemini-api-key" placeholder="Cole sua API Key aqui" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
                 
-                <label style="font-weight: bold; display: block; margin-top: 15px;">Selecione o PDF da matéria:</label>
-                <input type="file" id="pdf-upload" accept="application/pdf" style="margin-top: 5px; display: block; width: 100%;">
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #BBDEFB;">
+
+                <label style="font-weight: bold; display: block;">Nome da Matéria:</label>
+                <input type="text" id="materia-nome" placeholder="Ex: Ciências - O Sistema Solar" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+
+                <!-- CAMPO UNIFICADO DE TEXTO -->
+                <label style="font-weight: bold; margin-top: 15px; display: block;">Material de Estudo (O texto que o aluno lerá e a IA usará):</label>
+                <textarea id="materia-conteudo" rows="8" placeholder="Cole aqui o texto ou resumo da matéria. A Inteligência Artificial usará EXATAMENTE este texto para gerar as perguntas..." style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
                 
-                <button id="btn-gerar-ia" style="background-color: #673AB7; color: white; padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 15px; width: 100%;">Ler PDF e Criar Questões ✨</button>
+                <!-- BOTÃO ATUALIZADO QUE LÊ O CAMPO ACIMA -->
+                <button id="btn-gerar-ia" style="background-color: #673AB7; color: white; padding: 15px; border: none; border-radius: 5px; font-size: 1.1em; font-weight: bold; cursor: pointer; margin-top: 15px; width: 100%;">Ler Material e Criar Questões (IA) ✨</button>
                 <div id="ai-status" style="text-align: center; margin-top: 10px; font-size: 0.9em; font-weight: bold;"></div>
             </div>
 
-            <hr style="margin: 25px 0; border: 0; border-top: 1px solid #ccc;">
-
-            <label style="font-weight: bold; display: block;">Nome da Matéria:</label>
-            <input type="text" id="materia-nome" placeholder="Digite o título da prova" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
-
-            <!-- NOVO CAMPO: MATERIAL DE ESTUDO -->
-            <label style="font-weight: bold; margin-top: 15px; display: block;">Material de Estudo (Texto para o aluno ler):</label>
-            <textarea id="materia-conteudo" rows="6" placeholder="Cole aqui o texto da matéria extraído do PDF..." style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
-
-            <label style="font-weight: bold; margin-top: 15px; display: block;">Código JSON da Prova:</label>
-            <textarea id="materia-questoes" rows="10" placeholder='Cole o array JSON gerado aqui...' style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
+            <label style="font-weight: bold; margin-top: 25px; display: block;">Código JSON da Prova (Gerado pela IA):</label>
+            <textarea id="materia-questoes" rows="8" placeholder='Aguardando Inteligência Artificial...' style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
 
             <button id="btn-salvar" style="background-color: #4CAF50; color: white; padding: 15px; border: none; width: 100%; border-radius: 5px; font-size: 1.2em; margin-top: 20px; cursor: pointer; font-weight: bold;">Publicar Prova no App dos Alunos ☁️</button>
             <div id="status" style="text-align: center; margin-top: 15px; font-weight: bold;"></div>
         </div>
 
-        <!-- SECÇÃO 2: CORREÇÃO (Oculta por padrão) -->
+        <!-- SECÇÃO 2: CORREÇÃO -->
         <div id="section-corrigir" style="display: none;">
             <h3 style="color: #E65100; margin-top: 0;">⏳ Alunos Aguardando Correção</h3>
             <button id="btn-carregar-pendencias" style="background: #ECEFF1; border: 1px solid #ccc; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-bottom: 15px;">Atualizar Lista 🔄</button>
