@@ -22,7 +22,7 @@
         <button onclick="location.reload()" style="background:none; border:none; color:#0277BD; cursor:pointer; text-decoration:underline;">⬅ Voltar ao Menu</button>
         <h2 id="selected-test-title">Matéria Selecionada</h2>
         <p style="text-align: center; font-size: 1.2em;">Você tem <strong>15 minutos</strong> para responder e um limite de <strong>2 tentativas</strong>. Se o tempo esgotar, respostas certas valem <strong>-1 ponto</strong>.</p>
-        
+        <button id="btn-open-study-login" class="action-btn" style="background-color: #0288D1; color: white; margin-bottom: 20px;">📖 Ler Material de Estudo</button>
         <div class="input-section">
             <input type="text" id="player-name" placeholder="Digite o seu nome" maxlength="15" autocomplete="off">
             <input type="number" id="player-age" placeholder="Sua idade" min="1" max="99" autocomplete="off">
@@ -44,6 +44,9 @@
 
     <!-- ECRÃ 3: O QUIZ -->
     <div class="container hidden" id="quiz-screen">
+        <!-- BOTÃO DE ESTUDO DURANTE O QUIZ -->
+        <button id="btn-open-study-quiz" style="background: #0288D1; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 15px; font-size: 1.1em;">📖 Consultar Material</button>
+        
         <div class="global-timer-container" id="global-timer">Tempo Restante: 15:00</div>
         <div class="header-info">
             <div id="display-name">Jogador: ---</div>
@@ -86,6 +89,19 @@
     </div>
 
     <div class="footer">CBT STUDIO</div>
+
+    <!-- MODAL DE ESTUDO OCULTO -->
+    <div id="study-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+        <div style="background: white; width: 100%; max-width: 800px; max-height: 90vh; border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <div style="padding: 15px 20px; background: #0288D1; color: white; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">📖 Material de Estudo</h3>
+                <button id="close-modal-btn" style="background: none; border: none; color: white; font-size: 2em; cursor: pointer; line-height: 1;">&times;</button>
+            </div>
+            <div id="study-content" style="padding: 25px; overflow-y: auto; font-size: 1.1em; line-height: 1.6; white-space: pre-wrap; flex-grow: 1; color: #333;">
+                Nenhum material cadastrado para esta prova.
+            </div>
+        </div>
+    </div>
 
     <!-- SCRIPT DA APLICAÇÃO -->
     <script type="module" src="app.js"></script>

@@ -132,15 +132,24 @@ btnGerarIA.addEventListener('click', async () => {
 
 btnSalvar.addEventListener('click', async () => {
     const titulo = document.getElementById('materia-nome').value.trim();
+    const conteudoText = document.getElementById('materia-conteudo').value.trim(); // Captura o material de estudo
     const questoesText = document.getElementById('materia-questoes').value.trim();
 
-    if(!titulo || !questoesText) return statusBox.innerHTML = "<span style='color:red;'>Preencha os campos.</span>";
+    if(!titulo || !questoesText) return statusBox.innerHTML = "<span style='color:red;'>Preencha o título e o JSON.</span>";
 
     try {
         const array = JSON.parse(questoesText);
-        await addDoc(collection(db, "cbt_provas"), { title: titulo, questions: array, createdAt: new Date() });
-        statusBox.innerHTML = "<span style='color:green;'>✅ Prova enviada aos alunos!</span>";
+        // Salva tudo no banco de dados, incluindo o texto de estudo
+        await addDoc(collection(db, "cbt_provas"), { 
+            title: titulo, 
+            studyMaterial: conteudoText, 
+            questions: array, 
+            createdAt: new Date() 
+        });
+        
+        statusBox.innerHTML = "<span style='color:green;'>✅ Prova e material enviados aos alunos!</span>";
         document.getElementById('materia-nome').value = "";
+        document.getElementById('materia-conteudo').value = "";
         document.getElementById('materia-questoes').value = "";
     } catch(e) {
         statusBox.innerHTML = "<span style='color:red;'>Erro: Formato JSON inválido.</span>";

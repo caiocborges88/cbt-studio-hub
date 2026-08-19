@@ -11,18 +11,31 @@ const resultScreen = document.getElementById('result-screen');
 // Variáveis do Estado do Jogo
 let activeTest = null; 
 let questions = [];
+let activeStudyMaterial = ""; // NOVO: Guarda o texto do material
 let playerName = "";
 let playerAge = "";
 let currentQuestion = 0;
 let score = 0;
-let dissertativeAnswers = []; // Guarda as fotos e textos do aluno
+let dissertativeAnswers = [];
 
 const TOTAL_TIME = 900; // 15 Minutos
 let timeRemaining = TOTAL_TIME;
 let globalTimerInterval;
 let isTimeUp = false;
 
-// Função Auxiliar: Comprimir foto para economizar espaço no Banco de Dados
+// ----------------------------------------------------
+// CONTROLE DO MODAL DE ESTUDO
+// ----------------------------------------------------
+const studyModal = document.getElementById('study-modal');
+const studyContent = document.getElementById('study-content');
+
+document.getElementById('btn-open-study-login').addEventListener('click', () => studyModal.classList.remove('hidden'));
+document.getElementById('btn-open-study-quiz').addEventListener('click', () => studyModal.classList.remove('hidden'));
+document.getElementById('close-modal-btn').addEventListener('click', () => studyModal.classList.add('hidden'));
+
+// ----------------------------------------------------
+// FUNÇÃO AUXILIAR: Comprimir foto
+// ----------------------------------------------------
 const compressImage = (file) => new Promise((resolve) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -32,35 +45,23 @@ const compressImage = (file) => new Promise((resolve) => {
         img.onload = () => {
             const canvas = document.createElement('canvas');
             let { width, height } = img;
-            // Limita o tamanho máximo a 800px para manter leveza
             if (width > 800 || height > 800) {
-                if (width > height) {
-                    height = Math.floor(height * (800 / width));
-                    width = 800;
-                } else {
-                    width = Math.floor(width * (800 / height));
-                    height = 800;
-                }
+                if (width > height) { height = Math.floor(height * (800 / width)); width = 800; } 
+                else { width = Math.floor(width * (800 / height)); height = 800; }
             }
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            // Retorna apenas os dados da imagem comprimida (Base64)
+            canvas.width = width; canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
             resolve(canvas.toDataURL('image/jpeg', 0.6).split(',')[1]);
         };
     };
 });
 
-// 1. Inicialização: Buscar Provas ao abrir a página
+// 1. Inicialização: Buscar Provas
 async function loadTests() {
     const testListDiv = document.getElementById('test-list');
     try {
         const snapshot = await getDocs(collection(db, "cbt_provas"));
-        if(snapshot.empty) {
-            testListDiv.innerHTML = "<p>Nenhuma prova disponível no momento.</p>";
-            return;
-        }
+        if(snapshot.empty) return testListDiv.innerHTML = "<p>Nenhuma prova disponível no momento.</p>";
 
         testListDiv.innerHTML = "";
         snapshot.forEach(doc => {
@@ -68,20 +69,24 @@ async function loadTests() {
             const btn = document.createElement('button');
             btn.className = "btn-test";
             btn.innerText = testData.title;
-            btn.onclick = () => selectTest(doc.id, testData.title, testData.questions);
+            // Envia também o studyMaterial (se não existir, envia string vazia)
+            btn.onclick = () => selectTest(doc.id, testData.title, testData.questions, testData.studyMaterial || "");
             testListDiv.appendChild(btn);
         });
         document.querySelector('#menu-screen p').style.display = 'none';
     } catch (e) {
-        console.error("Erro ao buscar provas:", e);
         testListDiv.innerHTML = "<p style='color:red;'>Erro de conexão com o servidor.</p>";
     }
 }
 
 // 2. Selecionar Prova
-function selectTest(id, title, testQuestions) {
+function selectTest(id, title, testQuestions, studyMaterial) {
     activeTest = { id, title };
     questions = testQuestions;
+    activeStudyMaterial = studyMaterial;
+    
+    // Atualiza o texto dentro da janela Modal
+    studyContent.innerText = activeStudyMaterial || "Nenhum material de estudo foi anexado pelo professor nesta prova.";
     
     document.getElementById('selected-test-title').innerText = title;
     menuScreen.classList.add('hidden');

@@ -30,7 +30,7 @@
             <button id="tab-corrigir" style="flex: 1; padding: 10px; background: #FFB300; color: #333; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">✅ Corrigir Pendências</button>
         </div>
         
-        <!-- SECÇÃO 1: CRIAR PROVAS (Oculta ou Visível via JS) -->
+        <!-- SECÇÃO 1: CRIAR PROVAS -->
         <div id="section-criar">
             <div style="background: #E3F2FD; padding: 15px; border-radius: 8px; border: 1px solid #BBDEFB;">
                 <h3 style="margin-top: 0; color: #1565C0;">🤖 Gerar Prova com IA (PDF)</h3>
@@ -48,6 +48,10 @@
 
             <label style="font-weight: bold; display: block;">Nome da Matéria:</label>
             <input type="text" id="materia-nome" placeholder="Digite o título da prova" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+
+            <!-- NOVO CAMPO: MATERIAL DE ESTUDO -->
+            <label style="font-weight: bold; margin-top: 15px; display: block;">Material de Estudo (Texto para o aluno ler):</label>
+            <textarea id="materia-conteudo" rows="6" placeholder="Cole aqui o texto da matéria extraído do PDF..." style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
 
             <label style="font-weight: bold; margin-top: 15px; display: block;">Código JSON da Prova:</label>
             <textarea id="materia-questoes" rows="10" placeholder='Cole o array JSON gerado aqui...' style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
