@@ -101,7 +101,15 @@ btnGerarIA.addEventListener('click', async () => {
         2. Múltipla Escolha: { "q": "Pergunta?", "options": ["A", "B", "C", "D"], "answer": 1 }
         3. Dissertativas: { "q": "Pergunta?", "gabarito": "Explicação" }`;
 
-        const modelos = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-pro'];
+        // LISTA DE MOTORES BLINDADA E ESTÁVEL
+        const modelos = [
+            'gemini-flash-lite-latest', 
+            'gemini-1.5-flash', 
+            'gemini-2.0-flash', 
+            'gemini-flash-latest', 
+            'gemini-pro'
+        ];
+        
         let iaResponseText = "";
         let sucesso = false;
 
@@ -122,7 +130,7 @@ btnGerarIA.addEventListener('click', async () => {
             } catch (err) { }
         }
 
-        if (!sucesso) throw new Error("Falha nos servidores do Google.");
+        if (!sucesso) throw new Error("Servidores do Google sobrecarregados. Tente novamente em 1 minuto.");
 
         iaResponseText = iaResponseText.replace(/```json/gi, '').replace(/```/g, '').trim();
         JSON.parse(iaResponseText); 
@@ -185,17 +193,15 @@ async function carregarProvas() {
             `;
             listaProvasGerenciar.appendChild(div);
 
-            // Ação de Exclusão com Trava de Segurança
             document.getElementById(`btn-del-${docSnap.id}`).addEventListener('click', async () => {
                 const confirmacao = confirm(`ATENÇÃO: Tem certeza que deseja APAGAR a prova "${data.title}" definitivamente?`);
                 if (confirmacao) {
                     try {
                         await deleteDoc(doc(db, "cbt_provas", docSnap.id));
                         alert("✅ Prova excluída com sucesso!");
-                        carregarProvas(); // Recarrega a lista
+                        carregarProvas(); 
                     } catch (error) {
                         alert("Erro ao tentar excluir a prova.");
-                        console.error(error);
                     }
                 }
             });
@@ -284,17 +290,30 @@ async function corrigirAluno(docId, studentData) {
                 });
             }
 
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            });
+            // LISTA DE MOTORES BLINDADA PARA CORREÇÃO
+            const modelosCorrecao = ['gemini-flash-lite-latest', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest', 'gemini-pro'];
+            let correcaoResponse = null;
+            let correcaoSucesso = false;
 
-            const aiData = await response.json();
-            if (!response.ok) throw new Error("Falha ao contatar a API.");
+            for (const mod of modelosCorrecao) {
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${mod}:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestBody)
+                    });
+                    const aiData = await res.json();
+                    if (res.ok && aiData.candidates) {
+                        correcaoResponse = aiData.candidates[0].content.parts[0].text;
+                        correcaoSucesso = true;
+                        break;
+                    }
+                } catch(e) {}
+            }
 
-            const rawText = aiData.candidates[0].content.parts[0].text;
-            const avaliacaoJson = JSON.parse(rawText.replace(/```json/gi, '').replace(/```/g, '').trim());
+            if (!correcaoSucesso) throw new Error("Falha ao contatar a API.");
+
+            const avaliacaoJson = JSON.parse(correcaoResponse.replace(/```json/gi, '').replace(/```/g, '').trim());
 
             novaPontuacao += avaliacaoJson.nota;
             aiFeedbacks.push(`Q${resp.questionIndex}: Nota ${avaliacaoJson.nota} - ${avaliacaoJson.feedback}`);
@@ -315,7 +334,7 @@ async function corrigirAluno(docId, studentData) {
 
     } catch (error) {
         console.error(error);
-        feedbackBox.innerHTML = `<span style='color: red;'>Erro na avaliação da IA. Tente novamente.</span>`;
+        feedbackBox.innerHTML = `<span style='color: red;'>Erro na avaliação da IA. Tente novamente em 1 minuto.</span>`;
         btn.disabled = false;
     }
 }
