@@ -151,19 +151,29 @@ btnSalvar.addEventListener('click', async () => {
     if(!titulo || !questoesText) return statusBox.innerHTML = "<span style='color:red;'>Preencha o título e o JSON.</span>";
 
     try {
-        const array = JSON.parse(questoesText);
+        let array = JSON.parse(questoesText);
+
+        // BLINDAGEM: Garante que as questões sejam sempre uma Lista (Array)
+        if (!Array.isArray(array)) {
+            // Se a IA colocou dentro de um objeto, o sistema extrai a lista automaticamente
+            if (array.questions) array = array.questions;
+            else if (array.questoes) array = array.questoes;
+            else throw new Error("O formato gerado não é uma lista [ ... ]. Gere novamente.");
+        }
+
         await addDoc(collection(db, "cbt_provas"), { 
             title: titulo, 
             studyMaterial: conteudoText, 
             questions: array, 
             createdAt: new Date() 
         });
+        
         statusBox.innerHTML = "<span style='color:green;'>✅ Prova publicada no App!</span>";
         document.getElementById('materia-nome').value = "";
         document.getElementById('materia-conteudo').value = "";
         document.getElementById('materia-questoes').value = "";
     } catch(e) {
-        statusBox.innerHTML = "<span style='color:red;'>Erro: JSON inválido.</span>";
+        statusBox.innerHTML = `<span style='color:red;'>Erro ao salvar: ${e.message || "Formato JSON inválido"}</span>`;
     }
 });
 
