@@ -85,8 +85,12 @@ function selectTest(id, title, testQuestions, studyMaterial) {
     questions = testQuestions;
     activeStudyMaterial = studyMaterial;
     
-    // Atualiza o texto dentro da janela Modal
-    studyContent.innerText = activeStudyMaterial || "Nenhum material de estudo foi anexado pelo professor nesta prova.";
+    // Atualiza o texto dentro da janela Modal usando o tradutor Markdown
+    if (activeStudyMaterial) {
+        studyContent.innerHTML = marked.parse(activeStudyMaterial);
+    } else {
+        studyContent.innerHTML = "<p>Nenhum material de estudo foi anexado pelo professor nesta prova.</p>";
+    }
     
     document.getElementById('selected-test-title').innerText = title;
     menuScreen.classList.add('hidden');

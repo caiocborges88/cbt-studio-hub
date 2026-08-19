@@ -90,3 +90,24 @@ button.action-btn:disabled { background-color: #E0E0E0; color: #9E9E9E; cursor: 
 .highlight { background-color: #FFF9C4 !important; font-weight: bold; }
 
 .footer { text-align: center; padding: 20px; color: #757575; font-weight: bold; font-size: 0.9em; margin-top: auto; }
+/* Estilos para o Modal de Estudo (Markdown) */
+#study-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+#study-content th, #study-content td {
+    border: 1px solid #ccc;
+    padding: 10px;
+    text-align: left;
+}
+#study-content th {
+    background-color: #E3F2FD;
+    color: #0277BD;
+}
+#study-content h2, #study-content h3 {
+    color: #1565C0;
+    margin-top: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
