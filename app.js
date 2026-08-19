@@ -87,7 +87,9 @@ function selectTest(id, title, testQuestions, studyMaterial) {
     
     // Atualiza o texto dentro da janela Modal usando o tradutor Markdown
     if (activeStudyMaterial) {
-        studyContent.innerHTML = marked.parse(activeStudyMaterial);
+        // "Cura" as tabelas quebradas pela IA: remove quebras de linha (Enters) indevidas antes das barras
+        let materialLimpo = activeStudyMaterial.replace(/\n+[\s\u00A0]+\|/g, ' | ');
+        studyContent.innerHTML = marked.parse(materialLimpo);
     } else {
         studyContent.innerHTML = "<p>Nenhum material de estudo foi anexado pelo professor nesta prova.</p>";
     }
