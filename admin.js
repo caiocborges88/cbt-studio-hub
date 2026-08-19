@@ -1,6 +1,6 @@
 import { db, auth } from "./firebase-config.js";
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { collection, addDoc, getDocs, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Elementos Básicos
 const loginScreen = document.getElementById('login-screen');
@@ -11,8 +11,10 @@ const btnLogout = document.getElementById('btn-logout');
 // Elementos das Abas
 const tabCriar = document.getElementById('tab-criar');
 const tabCorrigir = document.getElementById('tab-corrigir');
+const tabGerenciar = document.getElementById('tab-gerenciar');
 const sectionCriar = document.getElementById('section-criar');
 const sectionCorrigir = document.getElementById('section-corrigir');
+const sectionGerenciar = document.getElementById('section-gerenciar');
 
 // Elementos de Criação
 const apiKeyInput = document.getElementById('gemini-api-key');
@@ -21,9 +23,11 @@ const aiStatus = document.getElementById('ai-status');
 const btnSalvar = document.getElementById('btn-salvar');
 const statusBox = document.getElementById('status');
 
-// Elementos de Correção
+// Elementos de Correção e Gerenciamento
 const btnCarregarPendencias = document.getElementById('btn-carregar-pendencias');
 const listaPendencias = document.getElementById('lista-pendencias');
+const btnCarregarProvas = document.getElementById('btn-carregar-provas');
+const listaProvasGerenciar = document.getElementById('lista-provas-gerenciar');
 
 // Carregar Chave da API
 apiKeyInput.value = localStorage.getItem('geminiApiKey') || '';
@@ -33,11 +37,19 @@ apiKeyInput.addEventListener('input', () => localStorage.setItem('geminiApiKey',
 tabCriar.addEventListener('click', () => {
     sectionCriar.style.display = 'block';
     sectionCorrigir.style.display = 'none';
+    sectionGerenciar.style.display = 'none';
 });
 tabCorrigir.addEventListener('click', () => {
     sectionCriar.style.display = 'none';
     sectionCorrigir.style.display = 'block';
+    sectionGerenciar.style.display = 'none';
     carregarPendencias();
+});
+tabGerenciar.addEventListener('click', () => {
+    sectionCriar.style.display = 'none';
+    sectionCorrigir.style.display = 'none';
+    sectionGerenciar.style.display = 'block';
+    carregarProvas();
 });
 
 // Autenticação
@@ -73,83 +85,51 @@ btnGerarIA.addEventListener('click', async () => {
     const apiKey = apiKeyInput.value.trim();
     const textContent = document.getElementById('materia-conteudo').value.trim();
     
-    if (!apiKey) {
-        aiStatus.innerHTML = "<span style='color:red;'>Insira sua chave de API do Gemini.</span>";
-        return;
-    }
-    if (!textContent || textContent.length < 50) {
-        aiStatus.innerHTML = "<span style='color:red;'>Cole um texto válido no campo de Material de Estudo (mínimo 50 caracteres).</span>";
-        return;
-    }
+    if (!apiKey) return aiStatus.innerHTML = "<span style='color:red;'>Insira sua chave de API do Gemini.</span>";
+    if (!textContent || textContent.length < 50) return aiStatus.innerHTML = "<span style='color:red;'>Cole um texto válido no campo de Material de Estudo.</span>";
 
     aiStatus.innerHTML = "<span style='color:blue;'>Lendo o texto e gerando questões (Isso leva alguns segundos)... 🧠⏳</span>";
     btnGerarIA.disabled = true;
 
     try {
         const prompt = `Você é um professor. Crie 20 questões de múltipla escolha e 5 questões dissertativas baseadas EXCLUSIVAMENTE no material abaixo:
-        
         --- INÍCIO DO MATERIAL ---
         ${textContent.substring(0, 50000)}
         --- FIM DO MATERIAL ---
+        Regras RIGOROSAS:
+        1. Retorne ESTRITAMENTE um array JSON válido sem markdown.
+        2. Múltipla Escolha: { "q": "Pergunta?", "options": ["A", "B", "C", "D"], "answer": 1 }
+        3. Dissertativas: { "q": "Pergunta?", "gabarito": "Explicação" }`;
 
-        Regras RIGOROSAS de saída:
-        1. Retorne ESTRITAMENTE um array JSON válido, sem NENHUM texto antes ou depois.
-        2. NUNCA use formatação Markdown (\`\`\`json). O primeiro caractere da sua resposta deve ser [ e o último ].
-        3. Para Múltipla Escolha: { "q": "Pergunta?", "options": ["A", "B", "C", "D"], "answer": 1 }
-        4. Para Dissertativas: { "q": "Pergunta?", "gabarito": "Explicação da resposta correta" }`;
-
-        // Sistema de Fallback focado em modelos de texto rápidos
-        const modelosDeReserva = [
-            'gemini-2.5-flash',
-            'gemini-flash-latest',
-            'gemini-2.5-pro'
-        ];
-
+        const modelos = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-pro'];
         let iaResponseText = "";
         let sucesso = false;
 
-        for (const modelo of modelosDeReserva) {
+        for (const modelo of modelos) {
             aiStatus.innerHTML = `<span style='color:blue;'>Conectando ao motor ${modelo}... 🧠⏳</span>`;
-            
             try {
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }]
-                    })
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
-
                 const data = await response.json();
-
-                if (response.ok && data.candidates && data.candidates.length > 0) {
+                if (response.ok && data.candidates) {
                     iaResponseText = data.candidates[0].content.parts[0].text;
                     sucesso = true;
                     break;
-                } else {
-                    console.warn(`Motor ${modelo} indisponível. Tentando o próximo...`);
                 }
-            } catch (err) {
-                console.warn(`Falha na conexão com ${modelo}:`, err);
-            }
+            } catch (err) { }
         }
 
-        if (!sucesso) {
-            throw new Error("Todos os motores do Google falharam. Tente novamente em alguns minutos.");
-        }
+        if (!sucesso) throw new Error("Falha nos servidores do Google.");
 
-        // Limpeza de Markdown acidental
         iaResponseText = iaResponseText.replace(/```json/gi, '').replace(/```/g, '').trim();
-
-        // Validação de segurança: Força o teste estrutural do JSON antes de colocar na tela
         JSON.parse(iaResponseText); 
-
         document.getElementById('materia-questoes').value = iaResponseText;
-        aiStatus.innerHTML = "<span style='color:green;'>✅ Questões geradas com sucesso! Verifique o JSON abaixo e clique em Publicar.</span>";
-
+        aiStatus.innerHTML = "<span style='color:green;'>✅ Questões geradas com sucesso!</span>";
     } catch (error) {
-        console.error(error);
-        aiStatus.innerHTML = `<span style='color:red;'>Erro: ${error.message} (Verifique se o texto não quebrou a formatação da IA).</span>`;
+        aiStatus.innerHTML = `<span style='color:red;'>Erro: ${error.message}</span>`;
     } finally {
         btnGerarIA.disabled = false;
     }
@@ -157,29 +137,74 @@ btnGerarIA.addEventListener('click', async () => {
 
 btnSalvar.addEventListener('click', async () => {
     const titulo = document.getElementById('materia-nome').value.trim();
-    const conteudoText = document.getElementById('materia-conteudo').value.trim(); // Captura o material de estudo
+    const conteudoText = document.getElementById('materia-conteudo').value.trim();
     const questoesText = document.getElementById('materia-questoes').value.trim();
 
     if(!titulo || !questoesText) return statusBox.innerHTML = "<span style='color:red;'>Preencha o título e o JSON.</span>";
 
     try {
         const array = JSON.parse(questoesText);
-        // Salva tudo no banco de dados, incluindo o texto de estudo
         await addDoc(collection(db, "cbt_provas"), { 
             title: titulo, 
             studyMaterial: conteudoText, 
             questions: array, 
             createdAt: new Date() 
         });
-        
-        statusBox.innerHTML = "<span style='color:green;'>✅ Prova e material enviados aos alunos!</span>";
+        statusBox.innerHTML = "<span style='color:green;'>✅ Prova publicada no App!</span>";
         document.getElementById('materia-nome').value = "";
         document.getElementById('materia-conteudo').value = "";
         document.getElementById('materia-questoes').value = "";
     } catch(e) {
-        statusBox.innerHTML = "<span style='color:red;'>Erro: Formato JSON inválido.</span>";
+        statusBox.innerHTML = "<span style='color:red;'>Erro: JSON inválido.</span>";
     }
 });
+
+// ----------------------------------------------------
+// MOTOR DE GERENCIAMENTO (EXCLUIR PROVAS)
+// ----------------------------------------------------
+btnCarregarProvas.addEventListener('click', carregarProvas);
+
+async function carregarProvas() {
+    listaProvasGerenciar.innerHTML = "<p>Buscando provas no servidor... ☁️</p>";
+    try {
+        const snapshot = await getDocs(collection(db, "cbt_provas"));
+        if (snapshot.empty) {
+            listaProvasGerenciar.innerHTML = "<p style='color: green; font-weight: bold;'>Nenhuma prova cadastrada no sistema.</p>";
+            return;
+        }
+
+        listaProvasGerenciar.innerHTML = "";
+        snapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            const div = document.createElement('div');
+            div.style.cssText = "background: #FFEBEE; border: 1px solid #EF9A9A; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;";
+            
+            div.innerHTML = `
+                <span style="font-weight: bold; color: #C62828;">${data.title}</span>
+                <button id="btn-del-${docSnap.id}" style="background: #D32F2F; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold;">Excluir 🗑️</button>
+            `;
+            listaProvasGerenciar.appendChild(div);
+
+            // Ação de Exclusão com Trava de Segurança
+            document.getElementById(`btn-del-${docSnap.id}`).addEventListener('click', async () => {
+                const confirmacao = confirm(`ATENÇÃO: Tem certeza que deseja APAGAR a prova "${data.title}" definitivamente?`);
+                if (confirmacao) {
+                    try {
+                        await deleteDoc(doc(db, "cbt_provas", docSnap.id));
+                        alert("✅ Prova excluída com sucesso!");
+                        carregarProvas(); // Recarrega a lista
+                    } catch (error) {
+                        alert("Erro ao tentar excluir a prova.");
+                        console.error(error);
+                    }
+                }
+            });
+        });
+    } catch (error) {
+        console.error(error);
+        listaProvasGerenciar.innerHTML = "<p style='color:red;'>Erro ao buscar provas.</p>";
+    }
+}
 
 // ----------------------------------------------------
 // MOTOR DE CORREÇÃO (RESPOSTAS -> IA)
@@ -212,7 +237,6 @@ async function carregarPendencias() {
             `;
             listaPendencias.appendChild(div);
 
-            // Adiciona listener para o botão de corrigir aquele aluno específico
             document.getElementById(`btn-corrigir-${docSnap.id}`).addEventListener('click', () => {
                 corrigirAluno(docSnap.id, data);
             });
@@ -228,26 +252,19 @@ async function corrigirAluno(docId, studentData) {
     const btn = document.getElementById(`btn-corrigir-${docId}`);
     const feedbackBox = document.getElementById(`feedback-ia-${docId}`);
     
-    if (!apiKey) {
-        alert("Insira sua chave de API na aba 'Criar Nova Prova' primeiro.");
-        return;
-    }
+    if (!apiKey) return alert("Insira sua chave de API na aba 'Criar Nova Prova' primeiro.");
 
     btn.disabled = true;
     feedbackBox.innerHTML = "<span style='color: blue;'>A IA está avaliando as respostas... ⏳</span>";
 
-    let novaPontuacao = studentData.points; // Começa com a nota atual (que ganhou +100 provisórios por questão discursiva)
+    let novaPontuacao = studentData.points; 
     let aiFeedbacks = [];
 
     try {
-        // Percorre todas as respostas discursivas deste aluno
         for (let i = 0; i < studentData.dissertativeAnswers.length; i++) {
             const resp = studentData.dissertativeAnswers[i];
-            
-            // Subtraímos os 100 pontos provisórios que o aplicativo deu antes de aplicar a nota real da IA
             novaPontuacao -= 100; 
 
-            // Montagem do Prompt de Correção
             const promptCorrecao = `Atue como um professor avaliando o aluno. 
             Pergunta: ${resp.questionText}
             Gabarito Esperado: ${resp.gabarito}
@@ -260,7 +277,6 @@ async function corrigirAluno(docId, studentData) {
                 "feedback": "<uma frase curta elogiando o acerto ou explicando onde o aluno errou>"
             }`;
 
-            // Prepara o corpo da requisição (Text ou Text + Foto)
             let requestBody = { contents: [{ parts: [{ text: promptCorrecao }] }] };
             if (resp.photoBase64) {
                 requestBody.contents[0].parts.push({
@@ -268,7 +284,6 @@ async function corrigirAluno(docId, studentData) {
                 });
             }
 
-            // Chamada direta para o Gemini Flash (ideal para correção rápida)
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -276,29 +291,26 @@ async function corrigirAluno(docId, studentData) {
             });
 
             const aiData = await response.json();
-            if (!response.ok) throw new Error("Falha ao contatar a API para correção.");
+            if (!response.ok) throw new Error("Falha ao contatar a API.");
 
             const rawText = aiData.candidates[0].content.parts[0].text;
             const avaliacaoJson = JSON.parse(rawText.replace(/```json/gi, '').replace(/```/g, '').trim());
 
-            // Soma a nota real ao placar
             novaPontuacao += avaliacaoJson.nota;
             aiFeedbacks.push(`Q${resp.questionIndex}: Nota ${avaliacaoJson.nota} - ${avaliacaoJson.feedback}`);
         }
 
         feedbackBox.innerHTML = `<span style='color: green;'>Correção concluída! Salvando nota final (${novaPontuacao} pts)...</span>`;
 
-        // Atualiza o documento no banco de dados
         await updateDoc(doc(db, "cbt_rankings", docId), {
             points: novaPontuacao,
             status: "Corrigido",
             teacherFeedback: aiFeedbacks.join(" | ")
         });
 
-        feedbackBox.innerHTML = `<span style='color: green;'>✅ Nota atualizada e salva no ranking! O aluno subiu no painel.</span>`;
+        feedbackBox.innerHTML = `<span style='color: green;'>✅ Nota salva no ranking!</span>`;
         btn.style.display = 'none';
 
-        // Recarrega a lista após 2 segundos
         setTimeout(carregarPendencias, 2000);
 
     } catch (error) {

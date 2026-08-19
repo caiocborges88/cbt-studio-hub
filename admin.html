@@ -26,8 +26,9 @@
 
         <!-- MENU DE NAVEGAÇÃO INTERNA -->
         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-            <button id="tab-criar" style="flex: 1; padding: 10px; background: #0288D1; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">📝 Criar Nova Prova</button>
-            <button id="tab-corrigir" style="flex: 1; padding: 10px; background: #FFB300; color: #333; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">✅ Corrigir Pendências</button>
+            <button id="tab-criar" style="flex: 1; padding: 10px; background: #0288D1; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">📝 Criar Nova</button>
+            <button id="tab-corrigir" style="flex: 1; padding: 10px; background: #FFB300; color: #333; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">✅ Corrigir</button>
+            <button id="tab-gerenciar" style="flex: 1; padding: 10px; background: #E53935; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">🗑️ Gerenciar</button>
         </div>
         
         <!-- SECÇÃO 1: CRIAR PROVAS -->
@@ -43,11 +44,9 @@
                 <label style="font-weight: bold; display: block;">Nome da Matéria:</label>
                 <input type="text" id="materia-nome" placeholder="Ex: Ciências - O Sistema Solar" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
 
-                <!-- CAMPO UNIFICADO DE TEXTO -->
                 <label style="font-weight: bold; margin-top: 15px; display: block;">Material de Estudo (O texto que o aluno lerá e a IA usará):</label>
                 <textarea id="materia-conteudo" rows="8" placeholder="Cole aqui o texto ou resumo da matéria. A Inteligência Artificial usará EXATAMENTE este texto para gerar as perguntas..." style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
                 
-                <!-- BOTÃO ATUALIZADO QUE LÊ O CAMPO ACIMA -->
                 <button id="btn-gerar-ia" style="background-color: #673AB7; color: white; padding: 15px; border: none; border-radius: 5px; font-size: 1.1em; font-weight: bold; cursor: pointer; margin-top: 15px; width: 100%;">Ler Material e Criar Questões (IA) ✨</button>
                 <div id="ai-status" style="text-align: center; margin-top: 10px; font-size: 0.9em; font-weight: bold;"></div>
             </div>
@@ -66,6 +65,16 @@
             
             <div id="lista-pendencias" style="display: flex; flex-direction: column; gap: 15px;">
                 <p style="color: #757575;">Clique em 'Atualizar Lista' para buscar provas.</p>
+            </div>
+        </div>
+
+        <!-- SECÇÃO 3: GERENCIAR PROVAS -->
+        <div id="section-gerenciar" style="display: none;">
+            <h3 style="color: #C62828; margin-top: 0;">🗑️ Banco de Provas Ativas</h3>
+            <button id="btn-carregar-provas" style="background: #ECEFF1; border: 1px solid #ccc; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-bottom: 15px;">Atualizar Lista 🔄</button>
+            
+            <div id="lista-provas-gerenciar" style="display: flex; flex-direction: column; gap: 10px;">
+                <p style="color: #757575;">Clique em 'Atualizar Lista' para ver as provas do servidor.</p>
             </div>
         </div>
 
