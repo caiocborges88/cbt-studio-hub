@@ -67,64 +67,89 @@ btnLogin.addEventListener('click', async () => {
 btnLogout.addEventListener('click', async () => await signOut(auth));
 
 // ----------------------------------------------------
-// MOTOR DE CRIAÇÃO (PDF -> IA)
+// MOTOR DE CRIAÇÃO (TEXTO -> IA)
 // ----------------------------------------------------
-const fileToBase64 = (file) => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = error => reject(error);
-});
-
 btnGerarIA.addEventListener('click', async () => {
     const apiKey = apiKeyInput.value.trim();
-    const fileInput = document.getElementById('pdf-upload');
+    const textContent = document.getElementById('materia-conteudo').value.trim();
     
-    if (!apiKey) return aiStatus.innerHTML = "<span style='color:red;'>Insira sua chave de API.</span>";
-    if (fileInput.files.length === 0) return aiStatus.innerHTML = "<span style='color:red;'>Selecione um PDF.</span>";
-    
-    const file = fileInput.files[0];
-    if (file.size > 30 * 1024 * 1024) return aiStatus.innerHTML = "<span style='color:red;'>Arquivo muito grande (>30MB). Comprima-o.</span>";
+    if (!apiKey) {
+        aiStatus.innerHTML = "<span style='color:red;'>Insira sua chave de API do Gemini.</span>";
+        return;
+    }
+    if (!textContent || textContent.length < 50) {
+        aiStatus.innerHTML = "<span style='color:red;'>Cole um texto válido no campo de Material de Estudo (mínimo 50 caracteres).</span>";
+        return;
+    }
 
-    aiStatus.innerHTML = "<span style='color:blue;'>Processando documento... 🧠⏳</span>";
+    aiStatus.innerHTML = "<span style='color:blue;'>Lendo o texto e gerando questões (Isso leva alguns segundos)... 🧠⏳</span>";
     btnGerarIA.disabled = true;
 
     try {
-        const base64Pdf = await fileToBase64(file);
-        const prompt = `Você é um professor. Leia o documento e crie 20 questões de múltipla escolha e 5 questões dissertativas baseadas EXCLUSIVAMENTE nele.
-        Regras:
-        1. Retorne ESTRITAMENTE um array JSON válido sem marcações Markdown.
-        2. Múltipla Escolha: { "q": "Pergunta?", "options": ["A", "B", "C", "D"], "answer": 1 }
-        3. Dissertativas: { "q": "Pergunta?", "gabarito": "Explicação da resposta correta" }`;
+        const prompt = `Você é um professor. Crie 20 questões de múltipla escolha e 5 questões dissertativas baseadas EXCLUSIVAMENTE no material abaixo:
+        
+        --- INÍCIO DO MATERIAL ---
+        ${textContent.substring(0, 50000)}
+        --- FIM DO MATERIAL ---
 
-        const modelos = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-flash-latest'];
+        Regras RIGOROSAS de saída:
+        1. Retorne ESTRITAMENTE um array JSON válido, sem NENHUM texto antes ou depois.
+        2. NUNCA use formatação Markdown (\`\`\`json). O primeiro caractere da sua resposta deve ser [ e o último ].
+        3. Para Múltipla Escolha: { "q": "Pergunta?", "options": ["A", "B", "C", "D"], "answer": 1 }
+        4. Para Dissertativas: { "q": "Pergunta?", "gabarito": "Explicação da resposta correta" }`;
+
+        // Sistema de Fallback focado em modelos de texto rápidos
+        const modelosDeReserva = [
+            'gemini-2.5-flash',
+            'gemini-flash-latest',
+            'gemini-2.5-pro'
+        ];
+
         let iaResponseText = "";
         let sucesso = false;
 
-        for (const modelo of modelos) {
+        for (const modelo of modelosDeReserva) {
+            aiStatus.innerHTML = `<span style='color:blue;'>Conectando ao motor ${modelo}... 🧠⏳</span>`;
+            
             try {
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "application/pdf", data: base64Pdf } }] }]
+                        contents: [{ parts: [{ text: prompt }] }]
                     })
                 });
+
                 const data = await response.json();
-                if (response.ok && data.candidates) {
+
+                if (response.ok && data.candidates && data.candidates.length > 0) {
                     iaResponseText = data.candidates[0].content.parts[0].text;
                     sucesso = true;
                     break;
+                } else {
+                    console.warn(`Motor ${modelo} indisponível. Tentando o próximo...`);
                 }
-            } catch (err) {}
+            } catch (err) {
+                console.warn(`Falha na conexão com ${modelo}:`, err);
+            }
         }
 
-        if (!sucesso) throw new Error("Motores indisponíveis no momento.");
+        if (!sucesso) {
+            throw new Error("Todos os motores do Google falharam. Tente novamente em alguns minutos.");
+        }
 
-        document.getElementById('materia-questoes').value = iaResponseText.replace(/```json/gi, '').replace(/```/g, '').trim();
-        aiStatus.innerHTML = "<span style='color:green;'>✅ JSON Gerado com sucesso!</span>";
+        // Limpeza de Markdown acidental
+        iaResponseText = iaResponseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+        // Validação de segurança: Força o teste estrutural do JSON antes de colocar na tela
+        JSON.parse(iaResponseText); 
+
+        document.getElementById('materia-questoes').value = iaResponseText;
+        aiStatus.innerHTML = "<span style='color:green;'>✅ Questões geradas com sucesso! Verifique o JSON abaixo e clique em Publicar.</span>";
+
     } catch (error) {
-        aiStatus.innerHTML = `<span style='color:red;'>Erro: ${error.message}</span>`;
+        console.error(error);
+        aiStatus.innerHTML = `<span style='color:red;'>Erro: ${error.message} (Verifique se o texto não quebrou a formatação da IA).</span>`;
     } finally {
         btnGerarIA.disabled = false;
     }
