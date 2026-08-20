@@ -155,6 +155,7 @@ btnSalvar.addEventListener('click', async () => {
     const titulo = document.getElementById('materia-nome').value.trim();
     const conteudoText = document.getElementById('materia-conteudo').value.trim();
     const questoesText = document.getElementById('materia-questoes').value.trim();
+    const pdfLink = document.getElementById('materia-pdf').value.trim(); // <-- ESTA É A LINHA QUE FALTAVA!
 
     if(!titulo || !questoesText) return statusBox.innerHTML = "<span style='color:red;'>Preencha o título e o JSON.</span>";
 
@@ -162,13 +163,6 @@ btnSalvar.addEventListener('click', async () => {
         let array = JSON.parse(questoesText);
 
         // BLINDAGEM: Garante que as questões sejam sempre uma Lista (Array)
-        if (!Array.isArray(array)) {
-            // Se a IA colocou dentro de um objeto, o sistema extrai a lista automaticamente
-            if (array.questions) array = array.questions;
-            else if (array.questoes) array = array.questoes;
-            else throw new Error("O formato gerado não é uma lista [ ... ]. Gere novamente.");
-        }
-
         if (!Array.isArray(array)) {
             if (array.questions) array = array.questions;
             else if (array.questoes) array = array.questoes;
@@ -178,7 +172,7 @@ btnSalvar.addEventListener('click', async () => {
         await addDoc(collection(db, "cbt_provas"), { 
             title: titulo, 
             studyMaterial: conteudoText, 
-            studyPdf: pdfLink, 
+            studyPdf: pdfLink, // Salva o link do PDF no banco
             questions: array, 
             createdAt: new Date() 
         });
@@ -187,7 +181,7 @@ btnSalvar.addEventListener('click', async () => {
         document.getElementById('materia-nome').value = "";
         document.getElementById('materia-conteudo').value = "";
         document.getElementById('materia-questoes').value = "";
-        document.getElementById('materia-pdf').value = ""; // NOVO: Limpa o campo do link do PDF
+        document.getElementById('materia-pdf').value = ""; // Limpa o campo do PDF
     } catch(e) {
         statusBox.innerHTML = `<span style='color:red;'>Erro ao salvar: ${e.message || "Formato JSON inválido"}</span>`;
     }
