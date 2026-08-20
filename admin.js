@@ -29,6 +29,20 @@ const listaPendencias = document.getElementById('lista-pendencias');
 const btnCarregarProvas = document.getElementById('btn-carregar-provas');
 const listaProvasGerenciar = document.getElementById('lista-provas-gerenciar');
 
+// NOVO: Lógica do Botão de Ajuda (Guia Rápido)
+document.getElementById('btn-ajuda').addEventListener('click', () => {
+    // Garante que a aba de criar prova esteja aberta para mostrar os balões nela
+    tabCriar.click(); 
+    
+    // Inicia a demonstração com os botões em português
+    introJs().setOptions({
+        nextLabel: 'Próximo >',
+        prevLabel: '< Voltar',
+        doneLabel: 'Entendi!',
+        showBullets: false
+    }).start();
+});
+
 // Carregar Chave da API
 apiKeyInput.value = localStorage.getItem('geminiApiKey') || '';
 apiKeyInput.addEventListener('input', () => localStorage.setItem('geminiApiKey', apiKeyInput.value.trim()));

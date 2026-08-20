@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CBT Studio - Painel Admin</title>
+    <!-- NOVO: Biblioteca de estilos para os balões explicativos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/introjs.min.css">
 </head>
 <body style="font-family: Arial, sans-serif; background-color: #ECEFF1; padding: 20px; text-align: center;">
 
@@ -21,7 +23,11 @@
         
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ECEFF1; padding-bottom: 15px; margin-bottom: 20px;">
             <h2 style="color: #0277BD; margin: 0;">👨‍🏫 Painel do Professor</h2>
-            <button id="btn-logout" style="background: #D32F2F; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">Sair</button>
+            <div>
+                <!-- NOVO: Botão que ativa os balões -->
+                <button id="btn-ajuda" style="background: #4CAF50; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: bold;">❓ Guia Rápido</button>
+                <button id="btn-logout" style="background: #D32F2F; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">Sair</button>
+            </div>
         </div>
 
         <!-- MENU DE NAVEGAÇÃO INTERNA -->
@@ -36,16 +42,19 @@
             <div style="background: #E3F2FD; padding: 15px; border-radius: 8px; border: 1px solid #BBDEFB;">
                 <h3 style="margin-top: 0; color: #1565C0;">🤖 Criador Automatizado de Provas</h3>
                 
-                <label style="font-weight: bold; display: block; font-size: 0.9em;">Chave da API do Google Gemini (Usada para criar e corrigir):</label>
-                <input type="password" id="gemini-api-key" placeholder="Cole sua API Key aqui" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+                <div data-title="Passo 1: A Chave" data-intro="Cole sua chave do Google Gemini aqui. Ela é obrigatória para gerar e corrigir as provas.">
+                    <label style="font-weight: bold; display: block; font-size: 0.9em;">Chave da API do Google Gemini (Usada para criar e corrigir):</label>
+                    <input type="password" id="gemini-api-key" placeholder="Cole sua API Key aqui" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+                </div>
                 
                 <hr style="margin: 20px 0; border: 0; border-top: 1px solid #BBDEFB;">
 
-                <label style="font-weight: bold; display: block;">Nome da Matéria:</label>
-                <input type="text" id="materia-nome" placeholder="Ex: Ciências - O Sistema Solar" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+                <div data-title="Passo 2: O Título" data-intro="Dê um nome para a matéria. É assim que ela vai aparecer no menu dos alunos.">
+                    <label style="font-weight: bold; display: block;">Nome da Matéria:</label>
+                    <input type="text" id="materia-nome" placeholder="Ex: Ciências - O Sistema Solar" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+                </div>
 
-                <!-- NOVO: CONFIGURAÇÃO DE QUANTIDADE DE QUESTÕES -->
-                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <div style="display: flex; gap: 10px; margin-top: 15px;" data-title="Passo 3: As Questões" data-intro="Escolha quantas perguntas de múltipla escolha e quantas questões escritas a IA deve criar.">
                     <div style="flex: 1;">
                         <label style="font-weight: bold; font-size: 0.9em;">Múltipla Escolha (Qtd):</label>
                         <input type="number" id="qtd-objetivas" value="20" min="1" max="50" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
@@ -56,15 +65,28 @@
                     </div>
                 </div>
 
-                <!-- NOVO: CAMPO PARA O LINK DO PDF -->
-                <label style="font-weight: bold; margin-top: 15px; display: block;">Link do PDF (Google Drive) - Opcional:</label>
-                <input type="text" id="materia-pdf" placeholder="Cole o link de compartilhamento público do Google Drive aqui..." style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+                <div data-title="Passo 4: O PDF Visual" data-intro="Opcional: Cole aqui o link de compartilhamento do seu PDF no Google Drive para o aluno ler na tela dele.">
+                    <label style="font-weight: bold; margin-top: 15px; display: block;">Link do PDF (Google Drive) - Opcional:</label>
+                    <input type="text" id="materia-pdf" placeholder="Cole o link de compartilhamento público do Google Drive aqui..." style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+                </div>
 
-                <label style="font-weight: bold; margin-top: 15px; display: block;">Material de Estudo (O texto base para a Inteligência Artificial):</label>
-                <textarea id="materia-conteudo" rows="8" placeholder="Cole o texto puro aqui para a IA ler e gerar a prova..." style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
-                <button id="btn-gerar-ia" style="background-color: #673AB7; color: white; padding: 15px; border: none; border-radius: 5px; font-size: 1.1em; font-weight: bold; cursor: pointer; margin-top: 15px; width: 100%;">Ler Material e Criar Questões (IA) ✨</button>
+                <div data-title="Passo 5: O Cérebro da IA" data-intro="Cole o texto da matéria aqui. A IA vai ler apenas este texto para elaborar as perguntas e o gabarito.">
+                    <label style="font-weight: bold; margin-top: 15px; display: block;">Material de Estudo (O texto base para a Inteligência Artificial):</label>
+                    <textarea id="materia-conteudo" rows="8" placeholder="Cole o texto puro aqui para a IA ler e gerar a prova..." style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
+                </div>
+                
+                <button id="btn-gerar-ia" data-title="Passo 6: A Mágica" data-intro="Clique aqui! O sistema vai se comunicar com o Google e gerar a prova em segundos." style="background-color: #673AB7; color: white; padding: 15px; border: none; border-radius: 5px; font-size: 1.1em; font-weight: bold; cursor: pointer; margin-top: 15px; width: 100%;">Ler Material e Criar Questões (IA) ✨</button>
                 <div id="ai-status" style="text-align: center; margin-top: 10px; font-size: 0.9em; font-weight: bold;"></div>
             </div>
+
+            <div data-title="Passo 7: O Código" data-intro="A prova gerada aparecerá aqui em formato de código de programação. Você não precisa alterar nada.">
+                <label style="font-weight: bold; margin-top: 25px; display: block;">Código JSON da Prova (Gerado pela IA):</label>
+                <textarea id="materia-questoes" rows="8" placeholder='Aguardando Inteligência Artificial...' style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
+            </div>
+
+            <button id="btn-salvar" data-title="Passo 8: Publicação" data-intro="Por fim, clique aqui para salvar a prova e enviá-la instantaneamente para o aplicativo dos seus alunos!" style="background-color: #4CAF50; color: white; padding: 15px; border: none; width: 100%; border-radius: 5px; font-size: 1.2em; margin-top: 20px; cursor: pointer; font-weight: bold;">Publicar Prova no App dos Alunos ☁️</button>
+            <div id="status" style="text-align: center; margin-top: 15px; font-weight: bold;"></div>
+        </div>
 
             <label style="font-weight: bold; margin-top: 25px; display: block;">Código JSON da Prova (Gerado pela IA):</label>
             <textarea id="materia-questoes" rows="8" placeholder='Aguardando Inteligência Artificial...' style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
@@ -95,6 +117,8 @@
 
     </div>
 
+    <!-- SCRIPT DOS BALÕES -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.min.js"></script>
     <script type="module" src="./admin.js"></script>
 </body>
 </html>
