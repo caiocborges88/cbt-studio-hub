@@ -71,6 +71,16 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
         loginScreen.style.display = 'none';
         dashboardScreen.style.display = 'block';
+        
+        // NOVO: Verifica se é a primeira vez do professor no painel
+        if (!localStorage.getItem('guiaMostrado')) {
+            // Um pequeno atraso de meio segundo para garantir que a tela carregou visualmente
+            setTimeout(() => {
+                document.getElementById('btn-ajuda').click();
+                localStorage.setItem('guiaMostrado', 'true');
+            }, 500);
+        }
+        
     } else {
         loginScreen.style.display = 'block';
         dashboardScreen.style.display = 'none';
