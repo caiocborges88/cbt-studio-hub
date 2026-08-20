@@ -90,6 +90,26 @@
 
     <div class="footer">CBT STUDIO</div>
 
+    <!-- NOVO: MODAL DE RANKING GERAL OCULTO -->
+    <div id="ranking-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+        <div style="background: white; width: 100%; max-width: 600px; max-height: 90vh; border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <div style="padding: 15px 20px; background: #FFB300; color: #333; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">🏆 Ranking Geral da Prova</h3>
+                <button id="close-ranking-btn" style="background: none; border: none; color: #333; font-size: 2em; cursor: pointer; line-height: 1;">&times;</button>
+            </div>
+            <div style="padding: 20px; overflow-y: auto;">
+                <table class="leaderboard">
+                    <thead>
+                        <tr><th>Posição</th><th>Jogador</th><th>Pontuação</th><th>Tempo</th></tr>
+                    </thead>
+                    <tbody id="global-ranking-body">
+                        <tr><td colspan='4'>Carregando ranking... ☁️</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL DE ESTUDO OCULTO -->
     <div id="study-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
         <div style="background: white; width: 100%; max-width: 800px; max-height: 90vh; border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">

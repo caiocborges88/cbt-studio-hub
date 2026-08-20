@@ -44,6 +44,18 @@
                 <label style="font-weight: bold; display: block;">Nome da Matéria:</label>
                 <input type="text" id="materia-nome" placeholder="Ex: Ciências - O Sistema Solar" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
 
+                <!-- NOVO: CONFIGURAÇÃO DE QUANTIDADE DE QUESTÕES -->
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: bold; font-size: 0.9em;">Múltipla Escolha (Qtd):</label>
+                        <input type="number" id="qtd-objetivas" value="20" min="1" max="50" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: bold; font-size: 0.9em;">Dissertativas (Qtd):</label>
+                        <input type="number" id="qtd-dissertativas" value="0" min="0" max="20" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+                    </div>
+                </div>
+
                 <label style="font-weight: bold; margin-top: 15px; display: block;">Material de Estudo (O texto que o aluno lerá e a IA usará):</label>
                 <textarea id="materia-conteudo" rows="8" placeholder="Cole aqui o texto ou resumo da matéria. A Inteligência Artificial usará EXATAMENTE este texto para gerar as perguntas..." style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
                 

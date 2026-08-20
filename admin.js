@@ -91,15 +91,23 @@ btnGerarIA.addEventListener('click', async () => {
     aiStatus.innerHTML = "<span style='color:blue;'>Lendo o texto e gerando questões (Isso leva alguns segundos)... 🧠⏳</span>";
     btnGerarIA.disabled = true;
 
+    // NOVO: Captura os valores digitados no painel
+    const qtdObj = parseInt(document.getElementById('qtd-objetivas').value) || 20;
+    const qtdDiss = parseInt(document.getElementById('qtd-dissertativas').value) || 0;
+
     try {
-        const prompt = `Você é um professor. Crie 20 questões de múltipla escolha e 5 questões dissertativas baseadas EXCLUSIVAMENTE no material abaixo:
+        // NOVO: Adapta a regra da IA com base na escolha do professor
+        let regrasDissertativas = qtdDiss > 0 
+            ? `e ${qtdDiss} questões dissertativas\n3. Dissertativas: { "q": "Pergunta?", "gabarito": "Explicação" }` 
+            : `(NÃO crie questões dissertativas, faça apenas de múltipla escolha).`;
+
+        const prompt = `Você é um professor. Crie ${qtdObj} questões de múltipla escolha ${regrasDissertativas} baseadas EXCLUSIVAMENTE no material abaixo:
         --- INÍCIO DO MATERIAL ---
         ${textContent.substring(0, 50000)}
         --- FIM DO MATERIAL ---
         Regras RIGOROSAS:
         1. Retorne ESTRITAMENTE um array JSON válido sem markdown.
-        2. Múltipla Escolha: { "q": "Pergunta?", "options": ["A", "B", "C", "D"], "answer": 1 }
-        3. Dissertativas: { "q": "Pergunta?", "gabarito": "Explicação" }`;
+        2. Múltipla Escolha: { "q": "Pergunta?", "options": ["A", "B", "C", "D"], "answer": 1 }`;
 
         // LISTA DE MOTORES BLINDADA E ESTÁVEL
         const modelos = [

@@ -24,14 +24,59 @@ let globalTimerInterval;
 let isTimeUp = false;
 
 // ----------------------------------------------------
-// CONTROLE DO MODAL DE ESTUDO
+// CONTROLE DOS MODAIS (ESTUDO E RANKING)
 // ----------------------------------------------------
 const studyModal = document.getElementById('study-modal');
 const studyContent = document.getElementById('study-content');
+const rankingModal = document.getElementById('ranking-modal');
 
 document.getElementById('btn-open-study-login').addEventListener('click', () => studyModal.classList.remove('hidden'));
 document.getElementById('btn-open-study-quiz').addEventListener('click', () => studyModal.classList.remove('hidden'));
 document.getElementById('close-modal-btn').addEventListener('click', () => studyModal.classList.add('hidden'));
+document.getElementById('close-ranking-btn').addEventListener('click', () => rankingModal.classList.add('hidden'));
+
+// Função para abrir e carregar o modal de ranking direto do menu
+window.openRankingModal = async function(testId) {
+    rankingModal.classList.remove('hidden');
+    const tbody = document.getElementById('global-ranking-body');
+    tbody.innerHTML = "<tr><td colspan='4'>Carregando ranking... ☁️</td></tr>";
+    
+    try {
+        const q = query(collection(db, "cbt_rankings"), where("testId", "==", testId));
+        const querySnapshot = await getDocs(q);
+        
+        let scores = [];
+        querySnapshot.forEach(doc => scores.push(doc.data()));
+
+        // Ordena por maior pontuação e menor tempo
+        scores.sort((a, b) => {
+            if (b.points === a.points) return a.time - b.time;
+            return b.points - a.points;
+        });
+
+        tbody.innerHTML = "";
+        if (scores.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='4'>Nenhuma nota registrada ainda.</td></tr>";
+            return;
+        }
+
+        let i = 0;
+        for(let s of scores) {
+            let medal = (i === 0) ? "🥇 1º" : (i === 1) ? "🥈 2º" : (i === 2) ? "🥉 3º" : `${i + 1}º`;
+            let pendingBadge = s.status === "Pendente" ? " ⏳" : "";
+            tbody.innerHTML += `
+                <tr>
+                    <td>${medal}</td>
+                    <td>${s.name}</td>
+                    <td>${s.points}${pendingBadge}</td>
+                    <td>${Math.floor(s.time / 60)}m ${s.time % 60}s</td>
+                </tr>`;
+            i++;
+        }
+    } catch (error) {
+        tbody.innerHTML = "<tr><td colspan='4' style='color:red;'>Erro ao carregar ranking.</td></tr>";
+    }
+}
 
 // ----------------------------------------------------
 // FUNÇÃO AUXILIAR: Comprimir foto
@@ -66,12 +111,32 @@ async function loadTests() {
         testListDiv.innerHTML = "";
         snapshot.forEach(doc => {
             const testData = doc.data();
-            const btn = document.createElement('button');
-            btn.className = "btn-test";
-            btn.innerText = testData.title;
-            // Envia também o studyMaterial (se não existir, envia string vazia)
-            btn.onclick = () => selectTest(doc.id, testData.title, testData.questions, testData.studyMaterial || "");
-            testListDiv.appendChild(btn);
+            
+            // NOVO: Contêiner dividindo o espaço entre "Jogar" e "Ver Ranking"
+            const itemDiv = document.createElement('div');
+            itemDiv.style.display = "flex";
+            itemDiv.style.gap = "10px";
+            itemDiv.style.marginBottom = "10px";
+            
+            const btnPlay = document.createElement('button');
+            btnPlay.className = "btn-test";
+            btnPlay.style.flex = "1";
+            btnPlay.style.margin = "0";
+            btnPlay.innerText = "▶️ " + testData.title;
+            btnPlay.onclick = () => selectTest(doc.id, testData.title, testData.questions, testData.studyMaterial || "");
+            
+            const btnRank = document.createElement('button');
+            btnRank.className = "action-btn";
+            btnRank.style.margin = "0";
+            btnRank.style.padding = "10px";
+            btnRank.style.backgroundColor = "#FFB300";
+            btnRank.style.color = "#333";
+            btnRank.innerText = "🏆";
+            btnRank.onclick = () => openRankingModal(doc.id);
+            
+            itemDiv.appendChild(btnPlay);
+            itemDiv.appendChild(btnRank);
+            testListDiv.appendChild(itemDiv);
         });
         document.querySelector('#menu-screen p').style.display = 'none';
     } catch (e) {
