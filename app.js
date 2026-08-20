@@ -123,7 +123,8 @@ async function loadTests() {
             btnPlay.style.flex = "1";
             btnPlay.style.margin = "0";
             btnPlay.innerText = "▶️ " + testData.title;
-            btnPlay.onclick = () => selectTest(doc.id, testData.title, testData.questions, testData.studyMaterial || "");
+            // NOVO: Passa o link do PDF para a função
+            btnPlay.onclick = () => selectTest(doc.id, testData.title, testData.questions, testData.studyMaterial || "", testData.studyPdf || "");
             
             const btnRank = document.createElement('button');
             btnRank.className = "action-btn";
@@ -145,14 +146,17 @@ async function loadTests() {
 }
 
 // 2. Selecionar Prova
-function selectTest(id, title, testQuestions, studyMaterial) {
+function selectTest(id, title, testQuestions, studyMaterial, studyPdf) {
     activeTest = { id, title };
     questions = testQuestions;
     activeStudyMaterial = studyMaterial;
     
-    // Atualiza o texto dentro da janela Modal usando o tradutor Markdown
-    if (activeStudyMaterial) {
-        // "Cura" as tabelas quebradas pela IA: remove quebras de linha (Enters) indevidas antes das barras
+    // LÓGICA DE EXIBIÇÃO: Dá preferência ao PDF. Se não tiver PDF, mostra o texto.
+    if (studyPdf && studyPdf.includes("drive.google.com")) {
+        // Converte o link padrão do Drive em um link de "preview" para incorporar na tela
+        const embedUrl = studyPdf.replace(/\/view(.*)/, "/preview");
+        studyContent.innerHTML = `<iframe src="${embedUrl}" width="100%" height="550px" style="border: none; border-radius: 8px;"></iframe>`;
+    } else if (activeStudyMaterial) {
         let materialLimpo = activeStudyMaterial.replace(/\n+[\s\u00A0]+\|/g, ' | ');
         studyContent.innerHTML = marked.parse(materialLimpo);
     } else {

@@ -169,9 +169,16 @@ btnSalvar.addEventListener('click', async () => {
             else throw new Error("O formato gerado não é uma lista [ ... ]. Gere novamente.");
         }
 
+        if (!Array.isArray(array)) {
+            if (array.questions) array = array.questions;
+            else if (array.questoes) array = array.questoes;
+            else throw new Error("O formato gerado não é uma lista [ ... ]. Gere novamente.");
+        }
+
         await addDoc(collection(db, "cbt_provas"), { 
             title: titulo, 
             studyMaterial: conteudoText, 
+            studyPdf: pdfLink, 
             questions: array, 
             createdAt: new Date() 
         });
@@ -180,6 +187,7 @@ btnSalvar.addEventListener('click', async () => {
         document.getElementById('materia-nome').value = "";
         document.getElementById('materia-conteudo').value = "";
         document.getElementById('materia-questoes').value = "";
+        document.getElementById('materia-pdf').value = ""; // NOVO: Limpa o campo do link do PDF
     } catch(e) {
         statusBox.innerHTML = `<span style='color:red;'>Erro ao salvar: ${e.message || "Formato JSON inválido"}</span>`;
     }

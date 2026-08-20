@@ -56,9 +56,12 @@
                     </div>
                 </div>
 
-                <label style="font-weight: bold; margin-top: 15px; display: block;">Material de Estudo (O texto que o aluno lerá e a IA usará):</label>
-                <textarea id="materia-conteudo" rows="8" placeholder="Cole aqui o texto ou resumo da matéria. A Inteligência Artificial usará EXATAMENTE este texto para gerar as perguntas..." style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
-                
+                <!-- NOVO: CAMPO PARA O LINK DO PDF -->
+                <label style="font-weight: bold; margin-top: 15px; display: block;">Link do PDF (Google Drive) - Opcional:</label>
+                <input type="text" id="materia-pdf" placeholder="Cole o link de compartilhamento público do Google Drive aqui..." style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+
+                <label style="font-weight: bold; margin-top: 15px; display: block;">Material de Estudo (O texto base para a Inteligência Artificial):</label>
+                <textarea id="materia-conteudo" rows="8" placeholder="Cole o texto puro aqui para a IA ler e gerar a prova..." style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;"></textarea>
                 <button id="btn-gerar-ia" style="background-color: #673AB7; color: white; padding: 15px; border: none; border-radius: 5px; font-size: 1.1em; font-weight: bold; cursor: pointer; margin-top: 15px; width: 100%;">Ler Material e Criar Questões (IA) ✨</button>
                 <div id="ai-status" style="text-align: center; margin-top: 10px; font-size: 0.9em; font-weight: bold;"></div>
             </div>
