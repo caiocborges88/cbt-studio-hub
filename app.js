@@ -18,10 +18,8 @@ let currentQuestion = 0;
 let score = 0;
 let dissertativeAnswers = [];
 
-const TOTAL_TIME = 900; // 15 Minutos
-let timeRemaining = TOTAL_TIME;
-let globalTimerInterval;
-let isTimeUp = false;
+// Cronômetro Oculto (Background)
+let startTime = 0;
 
 // ----------------------------------------------------
 // CONTROLE DOS MODAIS (ESTUDO E RANKING)
@@ -69,7 +67,6 @@ window.openRankingModal = async function(testId) {
                     <td>${medal}</td>
                     <td>${s.name}</td>
                     <td>${s.points}${pendingBadge}</td>
-                    <td>${Math.floor(s.time / 60)}m ${s.time % 60}s</td>
                 </tr>`;
             i++;
         }
@@ -202,38 +199,11 @@ document.getElementById('btn-start').addEventListener('click', () => {
     quizScreen.classList.remove('hidden');
     document.getElementById('display-name').innerText = `Jogador: ${playerName}`;
     
-    startGlobalTimer();
+    startTime = Date.now(); // Inicia o cronômetro oculto
     loadQuestion();
 });
 
 // 4. Mecânica do Cronômetro
-function startGlobalTimer() {
-    timeRemaining = TOTAL_TIME;
-    updateTimerDisplay();
-    
-    globalTimerInterval = setInterval(() => {
-        timeRemaining--;
-        if (timeRemaining > 0) {
-            updateTimerDisplay();
-            if (timeRemaining <= 10) {
-                const gt = document.getElementById('global-timer');
-                gt.style.color = "#D32F2F"; gt.style.backgroundColor = "#FFEBEE";
-            }
-        } else if (timeRemaining === 0) {
-            isTimeUp = true;
-            const gt = document.getElementById('global-timer');
-            gt.innerText = "Tempo Esgotado! Acertos valem -1 ponto!";
-            gt.style.backgroundColor = "#FFCDD2"; gt.style.color = "#B71C1C";
-        }
-    }, 1000);
-}
-
-function updateTimerDisplay() {
-    let m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
-    let s = (timeRemaining % 60).toString().padStart(2, '0');
-    document.getElementById('global-timer').innerText = `Tempo Restante: ${m}:${s}`;
-}
-
 function formatTimeDisplay(totalSeconds) {
     return `${Math.floor(totalSeconds / 60)}m ${totalSeconds % 60}s`;
 }
@@ -280,15 +250,9 @@ window.submitAnswer = function(selectedIndex) {
     document.querySelectorAll('.options button').forEach(btn => btn.disabled = true);
 
     if(selectedIndex === q.answer) {
-        if (isTimeUp) {
-            score -= 1;
-            feedback.innerText = `✅ Certo... mas tempo esgotado! -1 ponto.`;
-            feedback.style.color = "#E65100";
-        } else {
-            score += 100;
-            feedback.innerText = `✅ Certo! +100 pontos!`;
-            feedback.style.color = "#2E7D32";
-        }
+        score += 100;
+        feedback.innerText = `✅ Certo! +100 pontos!`;
+        feedback.style.color = "#2E7D32";
     } else {
         feedback.innerText = `❌ Ops! A correta era: ${q.options[q.answer]}`;
         feedback.style.color = "#C62828";
@@ -331,11 +295,7 @@ document.getElementById('btn-submit-dissertative').addEventListener('click', asy
         photoBase64: base64Photo
     });
     
-    if (isTimeUp) {
-        score -= 1;
-    } else {
-        score += 100; 
-    }
+    score += 100; 
     
     feedback.innerText = `✅ Resposta registrada! (Aguardando correção do professor)`;
     feedback.style.color = "#2E7D32";
@@ -348,7 +308,6 @@ document.getElementById('btn-submit-dissertative').addEventListener('click', asy
 document.getElementById('next-btn').addEventListener('click', () => {
     currentQuestion++;
     if (currentQuestion >= questions.length) {
-        clearInterval(globalTimerInterval);
         endGame();
     } else {
         loadQuestion();
@@ -360,10 +319,11 @@ async function endGame() {
     quizScreen.classList.add('hidden');
     resultScreen.classList.remove('hidden');
     
-    let timeSpent = TOTAL_TIME - timeRemaining;
-    if(timeSpent < 0) timeSpent = TOTAL_TIME;
+    // Calcula silenciosamente os segundos gastos desde o start
+    let timeSpent = Math.floor((Date.now() - startTime) / 1000);
 
-    document.getElementById('final-score-text').innerHTML = `${playerName}, fez <strong>${score} pontos provisórios</strong><br><span style="font-size: 0.6em; color: #757575;">em ${formatTimeDisplay(timeSpent)}!</span>`;
+    // Exibe apenas os pontos para a criança
+    document.getElementById('final-score-text').innerHTML = `${playerName}, fez <strong>${score} pontos provisórios</strong>!`;
     document.getElementById('leaderboard-body').innerHTML = "<tr><td colspan='4'>A gravar e ordenar ranking... ☁️</td></tr>";
     
     try {
@@ -414,7 +374,6 @@ async function fetchAndRenderLeaderboard(tbodyId) {
                     <td>${medal}</td>
                     <td>${s.name} (${s.age} anos)</td>
                     <td>${s.points}${pendingBadge}</td>
-                    <td>${formatTimeDisplay(s.time)}</td>
                 </tr>`;
             i++;
         }

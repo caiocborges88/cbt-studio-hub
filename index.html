@@ -21,7 +21,7 @@
     <div class="container hidden" id="login-screen">
         <button onclick="location.reload()" style="background:none; border:none; color:#0277BD; cursor:pointer; text-decoration:underline;">⬅ Voltar ao Menu</button>
         <h2 id="selected-test-title">Matéria Selecionada</h2>
-        <p style="text-align: center; font-size: 1.2em;">Você tem <strong>15 minutos</strong> para responder e um limite de <strong>2 tentativas</strong>. Se o tempo esgotar, respostas certas valem <strong>-1 ponto</strong>.</p>
+        <p style="text-align: center; font-size: 1.2em;">Responda com calma. Foque no aprendizado e faça o seu melhor!</p>
         <button id="btn-open-study-login" class="action-btn" style="background-color: #0288D1; color: white; margin-bottom: 20px;">📖 Ler Material de Estudo</button>
         <div class="input-section">
             <input type="text" id="player-name" placeholder="Digite o seu nome" maxlength="15" autocomplete="off">
@@ -33,10 +33,10 @@
             <h3 style="text-align: center; color: #0277BD;">🏅 Ranking Atual 🏅</h3>
             <table class="leaderboard">
                 <thead>
-                    <tr><th>Posição</th><th>Jogador (Idade)</th><th>Pontuação</th><th>Tempo</th></tr>
+                    <tr><th>Posição</th><th>Jogador (Idade)</th><th>Pontuação</th></tr>
                 </thead>
                 <tbody id="initial-leaderboard-body">
-                    <tr><td colspan='4'>A carregar ranking... ☁️</td></tr>
+                    <tr><td colspan='3'>A carregar ranking... ☁️</td></tr>
                 </tbody>
             </table>
         </div>
@@ -47,7 +47,6 @@
         <!-- BOTÃO DE ESTUDO DURANTE O QUIZ -->
         <button id="btn-open-study-quiz" style="background: #0288D1; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 15px; font-size: 1.1em;">📖 Consultar Material</button>
         
-        <div class="global-timer-container" id="global-timer">Tempo Restante: 15:00</div>
         <div class="header-info">
             <div id="display-name">Jogador: ---</div>
             <div id="display-score">Pontos: 0</div>
