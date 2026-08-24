@@ -17,6 +17,8 @@ let playerAge = "";
 let currentQuestion = 0;
 let score = 0;
 let dissertativeAnswers = [];
+let quizHistory = []; // NOVO: Armazena o histórico de respostas
+let tempSelectedIndex = null; // NOVO: Armazena a seleção antes de confirmar
 
 // Cronômetro Oculto (Background)
 let startTime = 0;
@@ -192,6 +194,7 @@ document.getElementById('btn-start').addEventListener('click', () => {
     playerName = nameInput;
     playerAge = ageInput;
     dissertativeAnswers = []; // Zera as respostas para um novo jogo
+    quizHistory = []; // Zera o histórico
     score = 0;
     currentQuestion = 0;
     
@@ -210,7 +213,9 @@ function formatTimeDisplay(totalSeconds) {
 
 // 5. Exibição Híbrida (Múltipla Escolha / Dissertativa)
 function loadQuestion() {
+    tempSelectedIndex = null;
     document.getElementById('next-btn').classList.add('hidden');
+    document.getElementById('confirm-btn').classList.add('hidden'); // Oculta botão confirmar
     document.getElementById('feedback').innerText = "";
     document.getElementById('display-progress').innerText = `${currentQuestion + 1} / ${questions.length}`;
     
@@ -242,25 +247,63 @@ function loadQuestion() {
     }
 }
 
-// Envio de Múltipla Escolha
+// Seleção Visual de Múltipla Escolha
 window.submitAnswer = function(selectedIndex) {
+    tempSelectedIndex = selectedIndex;
+    
+    const btns = document.querySelectorAll('.options button');
+    btns.forEach((btn, idx) => {
+        if (idx === selectedIndex) {
+            btn.style.backgroundColor = "#FF9800";
+            btn.style.color = "white";
+            btn.style.borderColor = "#F57C00";
+        } else {
+            btn.style.backgroundColor = "white";
+            btn.style.color = "#333";
+            btn.style.borderColor = "#ccc";
+        }
+    });
+
+    document.getElementById('confirm-btn').classList.remove('hidden');
+};
+
+// NOVO: Validação após clicar em "Confirmar"
+document.getElementById('confirm-btn').addEventListener('click', () => {
+    if (tempSelectedIndex === null) return;
+
     const q = questions[currentQuestion];
     const feedback = document.getElementById('feedback');
     
-    document.querySelectorAll('.options button').forEach(btn => btn.disabled = true);
+    document.getElementById('confirm-btn').classList.add('hidden');
+    const btns = document.querySelectorAll('.options button');
+    btns.forEach(btn => btn.disabled = true);
 
-    if(selectedIndex === q.answer) {
+    let isCorrect = (tempSelectedIndex === q.answer);
+    
+    quizHistory.push({
+        question: q.q,
+        selected: q.options[tempSelectedIndex],
+        correct: q.options[q.answer],
+        isCorrect: isCorrect
+    });
+
+    if(isCorrect) {
         score += 100;
         feedback.innerText = `✅ Certo! +100 pontos!`;
         feedback.style.color = "#2E7D32";
+        btns[tempSelectedIndex].style.backgroundColor = "#4CAF50"; // Verde
+        btns[tempSelectedIndex].style.borderColor = "#388E3C";
     } else {
         feedback.innerText = `❌ Ops! A correta era: ${q.options[q.answer]}`;
         feedback.style.color = "#C62828";
+        btns[tempSelectedIndex].style.backgroundColor = "#F44336"; // Vermelho (errada)
+        btns[q.answer].style.backgroundColor = "#4CAF50"; // Verde (certa)
+        btns[q.answer].style.color = "white";
     }
     
     document.getElementById('display-score').innerText = `Pontos: ${score}`;
     document.getElementById('next-btn').classList.remove('hidden');
-};
+});
 
 // Envio de Questão Dissertativa (Assíncrono com Compressão)
 document.getElementById('btn-submit-dissertative').addEventListener('click', async () => {
@@ -324,6 +367,28 @@ async function endGame() {
 
     // Exibe apenas os pontos para a criança
     document.getElementById('final-score-text').innerHTML = `${playerName}, fez <strong>${score} pontos provisórios</strong>!`;
+    
+    // NOVO: Renderiza o histórico de questões objetivas
+    let summaryHtml = "<h4 style='color: #0277BD; margin-top: 0; margin-bottom: 15px;'>Resumo das suas respostas objetivas:</h4>";
+    if (quizHistory.length === 0) {
+        summaryHtml += "<p style='color: #757575;'>Nenhuma questão objetiva nesta prova.</p>";
+    } else {
+        quizHistory.forEach((item, index) => {
+            let color = item.isCorrect ? "#2E7D32" : "#C62828";
+            let icon = item.isCorrect ? "✅" : "❌";
+            summaryHtml += `
+            <div style="margin-bottom: 12px; border-bottom: 1px solid #CFD8DC; padding-bottom: 10px;">
+                <strong style="color: #333; font-size: 0.95em;">${index + 1}. ${item.question}</strong><br>
+                <span style="color: ${color}; font-size: 0.9em; font-weight: bold;">${icon} Sua resposta: ${item.selected}</span><br>`;
+            
+            if (!item.isCorrect) {
+                summaryHtml += `<span style="color: #2E7D32; font-size: 0.9em; font-weight: bold;">🎯 Correta: ${item.correct}</span>`;
+            }
+            summaryHtml += `</div>`;
+        });
+    }
+    document.getElementById('quiz-summary').innerHTML = summaryHtml;
+
     document.getElementById('leaderboard-body').innerHTML = "<tr><td colspan='4'>A gravar e ordenar ranking... ☁️</td></tr>";
     
     try {

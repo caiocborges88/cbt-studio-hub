@@ -69,13 +69,18 @@
         </div>
 
         <div id="feedback"></div>
+        <!-- NOVO: Botão de Confirmação -->
+        <button class="action-btn hidden" id="confirm-btn" style="margin-top: 20px; max-width: 100%; background-color: #FF9800;">Confirmar Resposta ✔️</button>
         <button class="action-btn hidden" id="next-btn" style="margin-top: 20px; max-width: 100%;">Avançar ➡️</button>
     </div>
 
     <!-- ECRÃ 4: RESULTADO -->
     <div class="container hidden" id="result-screen">
         <h2>Fim do Jogo!</h2>
-        <h3 style="text-align: center; font-size: 2em; color: #E65100;" id="final-score-text"></h3>
+        <h3 style="text-align: center; font-size: 2em; color: #E65100; margin-bottom: 5px;" id="final-score-text"></h3>
+        
+        <!-- NOVO: Painel de Resumo de Acertos e Erros -->
+        <div id="quiz-summary" style="margin-top: 20px; text-align: left; max-height: 350px; overflow-y: auto; background: #ECEFF1; padding: 15px; border-radius: 8px; border: 1px solid #CFD8DC;"></div>
         
         <h2 style="margin-top: 30px;">🏅 Pódio Final 🏅</h2>
         <table class="leaderboard">
