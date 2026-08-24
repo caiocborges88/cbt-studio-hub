@@ -1,6 +1,6 @@
 // app.js
 import { db } from "./firebase-config.js";
-import { collection, getDocs, addDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, getDocs, addDoc, updateDoc, doc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Telas
 const menuScreen = document.getElementById('menu-screen');
@@ -407,16 +407,43 @@ async function endGame() {
     document.getElementById('leaderboard-body').innerHTML = "<tr><td colspan='4'>A gravar e ordenar ranking... ☁️</td></tr>";
     
     try {
-        await addDoc(collection(db, "cbt_rankings"), {
-            testId: activeTest.id,
-            name: playerName,
-            age: playerAge,
-            points: score,
-            time: timeSpent,
-            // Novo: Enviando as provas escritas para a nuvem
-            dissertativeAnswers: dissertativeAnswers,
-            status: dissertativeAnswers.length > 0 ? "Pendente" : "Corrigido"
-        });
+        // NOVO: Busca se o aluno já tem uma nota salva nesta prova exata
+        const q = query(collection(db, "cbt_rankings"), 
+            where("testId", "==", activeTest.id), 
+            where("name", "==", playerName), 
+            where("age", "==", playerAge)
+        );
+        const querySnapshot = await getDocs(q);
+
+        const newStatus = dissertativeAnswers.length > 0 ? "Pendente" : "Corrigido";
+
+        if (!querySnapshot.empty) {
+            // O aluno já existe no banco. Vamos ver se a nota nova é um recorde.
+            const existingDoc = querySnapshot.docs[0];
+            const oldData = existingDoc.data();
+            
+            // Critério para recorde: Pontuação maior OU mesma pontuação em menos tempo
+            if (score > oldData.points || (score === oldData.points && timeSpent < oldData.time)) {
+                await updateDoc(doc(db, "cbt_rankings", existingDoc.id), {
+                    points: score,
+                    time: timeSpent,
+                    dissertativeAnswers: dissertativeAnswers,
+                    status: newStatus
+                });
+            }
+            // Se a nota antiga for melhor, não fazemos nada. O recorde original é mantido.
+        } else {
+            // É a primeira vez deste aluno na prova
+            await addDoc(collection(db, "cbt_rankings"), {
+                testId: activeTest.id,
+                name: playerName,
+                age: playerAge,
+                points: score,
+                time: timeSpent,
+                dissertativeAnswers: dissertativeAnswers,
+                status: newStatus
+            });
+        }
     } catch (e) {
         console.error("Erro ao salvar nota: ", e);
     }
