@@ -10,7 +10,8 @@ const resultScreen = document.getElementById('result-screen');
 
 // Variáveis do Estado do Jogo
 let activeTest = null; 
-let questions = [];
+let allTestQuestions = []; // NOVO: Guarda o banco completo de questões
+let questions = []; // Guarda apenas as 10 questões sorteadas da partida
 let activeStudyMaterial = ""; // NOVO: Guarda o texto do material
 let playerName = "";
 let playerAge = "";
@@ -78,8 +79,19 @@ window.openRankingModal = async function(testId) {
 }
 
 // ----------------------------------------------------
-// FUNÇÃO AUXILIAR: Comprimir foto
+// FUNÇÕES AUXILIARES
 // ----------------------------------------------------
+// NOVO: Embaralhar array (Algoritmo Fisher-Yates)
+function shuffleArray(array) {
+    let shuffled = array.slice(); // Cria uma cópia para não alterar o original
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+// Comprimir foto
 const compressImage = (file) => new Promise((resolve) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -147,7 +159,7 @@ async function loadTests() {
 // 2. Selecionar Prova
 function selectTest(id, title, testQuestions, studyMaterial, studyPdf) {
     activeTest = { id, title };
-    questions = testQuestions;
+    allTestQuestions = testQuestions; // Salva o banco original intacto
     activeStudyMaterial = studyMaterial;
     
     // LÓGICA DE EXIBIÇÃO: Dá preferência ao PDF. Se não tiver PDF, mostra o texto.
@@ -197,6 +209,9 @@ document.getElementById('btn-start').addEventListener('click', () => {
     quizHistory = []; // Zera o histórico
     score = 0;
     currentQuestion = 0;
+    
+    // NOVO: Sorteia aleatoriamente até 10 questões do banco da prova
+    questions = shuffleArray(allTestQuestions).slice(0, 10);
     
     loginScreen.classList.add('hidden');
     quizScreen.classList.remove('hidden');
