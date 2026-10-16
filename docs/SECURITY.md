@@ -8,7 +8,7 @@ Tokens de convite têm 256 bits, validade de sete dias e uso único; só o hash 
 
 Perfis selecionados dentro de uma conta de responsável são uma ferramenta de acompanhamento; não constituem troca de identidade. Para uso autônomo infantil, entre com convite na sessão infantil, sem manter a conta do adulto aberta.
 
-Storage aceita uploads novos em caminhos do próprio usuário e grupo: PDFs por educadores ativos e fotos de resposta por membros ativos. Formatos e tamanhos são limitados; leitura direta e sobrescrita são bloqueadas. O backend verifica novamente o escopo e os limites antes de processar arquivos.
+Storage aceita uploads novos em caminhos do próprio usuário e grupo: PDFs por responsáveis e educadores ativos, e fotos de resposta por esses adultos ou estudantes com 15 anos ou mais. Perfis de até 14 anos, inclusive perfis infantis antigos sem faixa confirmada, não podem enviar arquivos. A faixa etária é independente da etapa escolar, não exige data de nascimento e só pode ser definida por responsável ou educador. A interface, o servidor e as regras de Storage aplicam essa política. Adultos podem anexar uma foto própria à resposta aberta pendente da criança pelo acompanhamento; a criança pode consultar esse anexo na própria sessão. Formatos e tamanhos são limitados; leitura direta e sobrescrita são bloqueadas. O backend verifica novamente o escopo e os limites antes de processar arquivos.
 
 Arquivos são servidos por URL assinada de curta duração. Quem já recebeu uma URL pode usá-la até sua expiração mesmo que o acesso seja revogado nesse intervalo. Conteúdo externo é renderizado sem HTML cru; links têm protocolos filtrados pelo React Markdown e não são abertos com acesso ao contexto da página.
 

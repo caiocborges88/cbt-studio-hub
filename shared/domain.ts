@@ -128,6 +128,7 @@ export interface Profile {
   theme: Theme;
   subject: string;
   child: boolean;
+  ageBand?: "up-to-14" | "15-plus";
   guardianUid?: string;
   ownerUid?: string;
 }
@@ -137,6 +138,15 @@ export interface Member {
   profileId: string;
   active: boolean;
   provider: "adult" | "child";
+}
+export function canUploadAnswers(
+  profile: Profile,
+  adult: boolean,
+  role: Role,
+): boolean {
+  if (adult && (role === "admin" || role === "educator")) return true;
+  if (profile.ageBand === "up-to-14") return false;
+  return profile.child ? profile.ageBand === "15-plus" : adult;
 }
 export interface Group {
   id: string;

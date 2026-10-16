@@ -32,6 +32,10 @@ Copie `functions/.env.example` para `functions/.env.SEU_PROJETO_HOMOLOGACAO`. Es
 
 As cotas são limites operacionais, não teto monetário global. Configure alertas de orçamento e acompanhe solicitações, páginas, leituras e arquivos. Pessoas que criam múltiplos grupos obtêm cotas por grupo; para operação comercial, acrescente aprovação de novos grupos ou cotas globais por conta.
 
+Para um piloto restrito, configure `AI_ALLOWED_GROUP_IDS` no servidor com os IDs autorizados, separados por vírgulas. Uma lista vazia bloqueia todas as tarefas; variável ausente mantém o acesso dos grupos autorizados pelas regras do serviço. A restrição se aplica a novos pedidos, retomadas e ao worker, inclusive se a permissão mudar depois do enfileiramento. Ela não impede estudar ou criar exercícios de matemática sem IA.
+
+A chave pública Firebase deve continuar restrita às APIs Firebase. Não permita `generativelanguage.googleapis.com` nessa chave: somente a chave privada do servidor deve acessar o Gemini.
+
 ## 3. Validar e publicar a prévia
 
 ```sh

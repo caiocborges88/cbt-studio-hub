@@ -1,4 +1,4 @@
-import { initializeApp, applicationDefault } from "firebase-admin/app";
+import { initializeApp, applicationDefault, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { createHash } from "node:crypto";
 import {
@@ -29,13 +29,19 @@ const stage = (
 ) as Stage;
 if (!stages.includes(stage) || !/^[-\w]+$/.test(groupId))
   throw new Error("Etapa ou grupo inválido.");
-initializeApp({
-  projectId,
-  ...(!process.env.FIRESTORE_EMULATOR_HOST
-    ? { credential: applicationDefault() }
-    : {}),
-});
-const db = getFirestore();
+const app =
+  getApps()[0] ||
+  initializeApp({
+    projectId,
+    ...(!process.env.FIRESTORE_EMULATOR_HOST
+      ? { credential: applicationDefault() }
+      : {}),
+  });
+if (app.options.projectId !== projectId)
+  throw new Error(
+    "A credencial inicializada aponta para outro projeto. Nenhuma alteração foi realizada.",
+  );
+const db = getFirestore(app);
 const groupRef = db.doc("groups/" + groupId);
 const group = (await groupRef.get()).data() as Group | undefined;
 if (!group || group.ownerUid !== owner)

@@ -14,6 +14,8 @@ import { PDFDocument, StandardFonts } from "pdf-lib";
 import { examples, exampleMaterial } from "../shared/fixtures";
 import { type Job, type Session, type Attempt } from "../shared/domain";
 vi.mock("../functions/src/ai.js", () => ({ generateJson: vi.fn() }));
+vi.mock("firebase-functions/logger", () => ({ error: vi.fn() }));
+import { error as logError } from "firebase-functions/logger";
 import { generateJson } from "../functions/src/ai.js";
 import { processJob } from "../functions/src/jobs";
 const mocked = vi.mocked(generateJson);
@@ -36,7 +38,9 @@ let groupId: string;
 beforeEach(async () => {
   groupId = "jobs-" + crypto.randomUUID();
   mocked.mockReset();
+  vi.mocked(logError).mockReset();
   process.env.OCR_DAILY_PAGE_LIMIT = "50";
+  delete process.env.AI_ALLOWED_GROUP_IDS;
   const db = getFirestore();
   await db.doc("groups/" + groupId).set({ id: groupId, ownerUid: "adult" });
   await db
@@ -87,6 +91,38 @@ async function uploadPdf(pages: number, blank = false) {
   return path;
 }
 describe("asynchronous worker with provider mocked, real emulator persistence", () => {
+  it("logs failure phases without logging provider payloads or student answers", async () => {
+    const m = await material();
+    mocked.mockRejectedValue(new Error("PRIVATE ANSWER AND CREDENTIAL"));
+    const ref = await job("generate", {
+      title: "Pesquisa",
+      subject: "Ciência",
+      stage: "superior",
+      difficulty: "pratica",
+      objectives: "Interpretar evidências",
+      count: 1,
+      types: ["choice"],
+      materialId: m.id,
+      pageNumbers: [1],
+    });
+    await processJob(groupId, ref.id);
+    expect(logError).toHaveBeenCalledWith(
+      "learning_job_failed",
+      expect.objectContaining({ phase: "generation", kind: "generate" }),
+    );
+    expect(JSON.stringify(vi.mocked(logError).mock.calls)).not.toContain(
+      "PRIVATE ANSWER",
+    );
+    expect((await ref.get()).data()?.status).toBe("failed");
+  });
+  it("blocks a queued job if its group was removed from the pilot", async () => {
+    const ref = await job("generate", {});
+    process.env.AI_ALLOWED_GROUP_IDS = "another-group";
+    await processJob(groupId, ref.id);
+    expect((await ref.get()).data()?.status).toBe("failed");
+    expect(mocked).not.toHaveBeenCalled();
+    delete process.env.AI_ALLOWED_GROUP_IDS;
+  });
   it("claims a job once under duplicate events and leaves generated content as a draft", async () => {
     const m = await material();
     const a = examples("superior")[0];

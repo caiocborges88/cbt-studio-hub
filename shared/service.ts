@@ -25,6 +25,7 @@ import {
   validateActivity,
   normalize,
   parseNumber,
+  canUploadAnswers,
 } from "./domain.js";
 
 export interface Store {
@@ -48,6 +49,7 @@ export interface Dependencies {
   hash: (value: string) => string;
   aiDailyLimit: number;
   ocrDailyPageLimit: number;
+  aiAllowedGroupIds?: string[];
 }
 export class AppError extends Error {
   constructor(
@@ -172,6 +174,7 @@ export async function execute(
           avatar: "🌿",
           subject: "",
           child: false,
+          ageBand: "15-plus",
           ownerUid: auth.uid,
         };
         s.set("groups/" + groupId, group);
@@ -233,6 +236,7 @@ export async function execute(
             theme: "academic",
             subject: "",
             child: false,
+            ageBand: "15-plus",
             ownerUid: auth.uid,
           } satisfies Profile);
         }
@@ -404,6 +408,7 @@ export async function execute(
             nickname: title,
             stage: stageSchema,
             avatar: z.string().max(10).default("🦊"),
+            ageBand: z.enum(["up-to-14", "15-plus"]).default("up-to-14"),
           })
           .parse(data);
         const profile: Profile = {
@@ -414,10 +419,30 @@ export async function execute(
           avatar: input.avatar,
           subject: "",
           child: true,
+          ageBand: input.ageBand,
           guardianUid: auth.uid,
         };
         s.set(ref(groupId, "profiles", profile.id), profile);
         return profile;
+      }
+      if (action === "setProfileAgeBand") {
+        editor();
+        const input = z
+          .object({
+            profileId: ident,
+            ageBand: z.enum(["up-to-14", "15-plus"]),
+          })
+          .parse(data);
+        const profile = await s.get<Profile>(
+          ref(groupId, "profiles", input.profileId),
+        );
+        if (!profile?.child)
+          fail("Selecione um perfil sob responsabilidade de adulto.");
+        s.set(ref(groupId, "profiles", profile.id), {
+          ...profile,
+          ageBand: input.ageBand,
+        });
+        return { ok: true };
       }
       if (action === "invite") {
         editor();
@@ -831,6 +856,18 @@ export async function execute(
           fail("Escreva uma resposta ou anexe uma foto.");
         if (
           input.photoPath &&
+          !canUploadAnswers(
+            await profileFor(session.profileId),
+            auth.adult,
+            member.role,
+          )
+        )
+          fail(
+            "Arquivos deste perfil devem ser enviados pelo responsável ou professor.",
+            "permission-denied",
+          );
+        if (
+          input.photoPath &&
           (!input.photoPath.startsWith(
             "groups/" + groupId + "/answers/" + auth.uid + "/",
           ) ||
@@ -1003,6 +1040,38 @@ export async function execute(
           ),
         };
       }
+      if (action === "attachAnswerPhoto") {
+        editor();
+        const input = z
+          .object({
+            sessionId: ident,
+            attemptId: ident,
+            photoPath: z.string().max(300),
+          })
+          .parse(data);
+        const session = await getSession(input.sessionId);
+        const attempt = session?.attempts.find((a) => a.id === input.attemptId);
+        if (!session || !attempt || attempt.review !== "pending")
+          fail("Selecione uma resposta aberta aguardando avaliação.");
+        if (
+          (await getActivity(attempt.activityId)).type !== "open" ||
+          attempt.photoPath
+        )
+          fail("Esta resposta não aceita um novo anexo.");
+        if (
+          !input.photoPath.startsWith(
+            `groups/${groupId}/answers/${auth.uid}/`,
+          ) ||
+          input.photoPath.includes("..")
+        )
+          fail("Anexo privado.", "permission-denied");
+        const { suggestion: _outdated, ...current } = attempt;
+        s.set(
+          ref(groupId, "sessions", session.id) + "/attempts/" + attempt.id,
+          { ...current, photoPath: input.photoPath },
+        );
+        return { ok: true };
+      }
       if (action === "confirmReview") {
         editor();
         const input = z
@@ -1053,6 +1122,11 @@ export async function execute(
       }
       if (action === "enqueue") {
         editor();
+        if (deps.aiAllowedGroupIds && !deps.aiAllowedGroupIds.includes(groupId))
+          fail(
+            "A IA ainda não foi habilitada para este grupo na homologação.",
+            "permission-denied",
+          );
         const kind = z.enum(["generate", "pdf", "suggest"]).parse(data.kind);
         let input: Record<string, unknown>;
         if (kind === "generate") {
@@ -1131,6 +1205,11 @@ export async function execute(
       }
       if (action === "retryJob") {
         editor();
+        if (deps.aiAllowedGroupIds && !deps.aiAllowedGroupIds.includes(groupId))
+          fail(
+            "A IA ainda não foi habilitada para este grupo na homologação.",
+            "permission-denied",
+          );
         const job = await s.get<Job>(
           ref(groupId, "jobs", ident.parse(data.jobId)),
         );
@@ -1172,8 +1251,14 @@ export async function execute(
           if (
             !isEditor &&
             !path.startsWith("groups/" + groupId + "/answers/" + auth.uid + "/")
-          )
-            fail("Anexo privado.", "permission-denied");
+          ) {
+            const ownAttachment = (await allSessions()).some(
+              (session) =>
+                session.ownerUid === auth.uid &&
+                session.attempts.some((attempt) => attempt.photoPath === path),
+            );
+            if (!ownAttachment) fail("Anexo privado.", "permission-denied");
+          }
         } else fail("Arquivo inválido.");
         return { path };
       }

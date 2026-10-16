@@ -14,6 +14,12 @@ service firebase.storage {
       return active(groupId) && membership(groupId).provider == 'adult'
         && membership(groupId).role in ['admin', 'educator'];
     }
+    function studentCanUploadAnswers(groupId) {
+      let member = membership(groupId);
+      let profile = firestore.get(/databases/(default)/documents/groups/$(groupId)/profiles/$(member.profileId)).data;
+      return (('ageBand' in profile) && profile.ageBand == '15-plus')
+        || (!('ageBand' in profile) && profile.child == false && member.provider == 'adult');
+    }
     match /groups/{groupId}/materials/{uid}/{fileId} {
       allow create: if resource == null && isEditor(groupId) && request.auth.uid == uid
         && request.resource.size > 0 && request.resource.size <= 15 * 1024 * 1024
@@ -22,7 +28,7 @@ service firebase.storage {
       allow read, update, delete: if false;
     }
     match /groups/{groupId}/answers/{uid}/{fileId} {
-      allow create: if resource == null && active(groupId) && request.auth.uid == uid
+      allow create: if resource == null && active(groupId) && (isEditor(groupId) || studentCanUploadAnswers(groupId)) && request.auth.uid == uid
         && request.resource.size > 0 && request.resource.size <= 5 * 1024 * 1024
         && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp'];
       allow read, update, delete: if false;

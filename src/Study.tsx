@@ -18,6 +18,7 @@ import {
   type PublicActivity,
   type Session,
   typeLabels,
+  canUploadAnswers,
 } from "../shared/domain";
 import { scoreSession } from "../shared/service";
 import { useStudio } from "./context";
@@ -34,7 +35,7 @@ interface SessionView {
   review: { id: string; solution: string; explanation: string }[];
 }
 export function Study({ sessionId }: { sessionId: string }) {
-  const { workspace: w, go, report, refresh, profile } = useStudio();
+  const { workspace: w, go, report, refresh, profile, account } = useStudio();
   const [data, setData] = useState<SessionView | null>(null);
   const [answer, setAnswer] = useState<Answer>("");
   const [busy, setBusy] = useState(false);
@@ -334,7 +335,8 @@ export function Study({ sessionId }: { sessionId: string }) {
             }}
             disabled={busy || alreadySubmitted}
             onPhoto={
-              a.type === "open"
+              a.type === "open" &&
+              canUploadAnswers(profile, account.adult, w.role)
                 ? (file) => {
                     setPhoto(file);
                     setPhotoPath(undefined);
@@ -343,6 +345,13 @@ export function Study({ sessionId }: { sessionId: string }) {
                 : undefined
             }
           />
+          {a.type === "open" &&
+            !canUploadAnswers(profile, account.adult, w.role) && (
+              <p className="small muted">
+                Neste perfil, arquivos devem ser enviados pelo responsável ou
+                professor, pelo acompanhamento das respostas.
+              </p>
+            )}
           {photo && <p className="small muted">Anexo: {photo.name}</p>}
           {hint && (
             <div className="hint-box">

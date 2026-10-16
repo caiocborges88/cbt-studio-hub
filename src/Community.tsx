@@ -26,13 +26,15 @@ import {
 import { scoreSession } from "../shared/service";
 import { useStudio } from "./context";
 import { PageHeading, Empty } from "./pages";
-import { call, openPrivateFile } from "./lib/api";
+import { call, openPrivateFile, upload } from "./lib/api";
 import { RichText } from "./components/RichText";
 import { useModal } from "./components/useModal";
 export function Groups() {
   const { workspace: w, account, run, report, notify } = useStudio();
   const [nickname, setNickname] = useState("");
   const [stage, setStage] = useState<Stage>("fundamental-inicial");
+  const [ageBand, setAgeBand] =
+    useState<NonNullable<Profile["ageBand"]>>("up-to-14");
   const [role, setRole] = useState("student");
   const [child, setChild] = useState(false);
   const [profileId, setProfileId] = useState("");
@@ -88,6 +90,32 @@ export function Groups() {
                     ? "Perfil sob responsabilidade de adulto"
                     : "Conta própria"}
                 </span>
+                {p.child && w.role !== "student" && (
+                  <label className="small">
+                    Faixa de idade
+                    <select
+                      aria-label={"Faixa de idade de " + p.nickname}
+                      value={p.ageBand || "up-to-14"}
+                      disabled={busy}
+                      onChange={(e) =>
+                        void task(async () => {
+                          await run("setProfileAgeBand", {
+                            profileId: p.id,
+                            ageBand: e.target.value,
+                          });
+                          notify(
+                            "Faixa de idade atualizada pelo responsável ou professor.",
+                          );
+                        })
+                      }
+                    >
+                      <option value="up-to-14">
+                        Até 14 anos · arquivos enviados por adulto
+                      </option>
+                      <option value="15-plus">15 anos ou mais</option>
+                    </select>
+                  </label>
+                )}
               </div>
             </div>
           ))}
@@ -123,12 +151,28 @@ export function Groups() {
                   ))}
                 </select>
               </label>
+              <label>
+                Faixa de idade do novo perfil
+                <select
+                  value={ageBand}
+                  onChange={(e) =>
+                    setAgeBand(
+                      e.target.value as NonNullable<Profile["ageBand"]>,
+                    )
+                  }
+                >
+                  <option value="up-to-14">
+                    Até 14 anos · arquivos enviados por adulto
+                  </option>
+                  <option value="15-plus">15 anos ou mais</option>
+                </select>
+              </label>
               <button
                 className="button primary"
                 disabled={busy || !nickname.trim()}
                 onClick={() =>
                   task(async () => {
-                    await run("createProfile", { nickname, stage });
+                    await run("createProfile", { nickname, stage, ageBand });
                     setNickname("");
                     notify(
                       "Perfil criado. Você pode selecioná-lo no topo da página.",
@@ -792,6 +836,19 @@ export function Progress() {
                 }
                 answer={String(a.answer)}
                 photo={a.photoPath}
+                attachPhoto={(file) =>
+                  task(async () => {
+                    const photoPath = await upload(w.group.id, "answers", file);
+                    await run("attachAnswerPhoto", {
+                      sessionId: session.id,
+                      attemptId: a.id,
+                      photoPath,
+                    });
+                    notify(
+                      "Foto anexada pelo responsável ou professor. Revise antes de avaliar.",
+                    );
+                  })
+                }
                 suggestion={a.suggestion}
                 busy={busy}
                 onPhoto={() => {
@@ -837,6 +894,7 @@ function ReviewCard({
   suggestion,
   busy,
   onPhoto,
+  attachPhoto,
   suggest,
   confirm,
 }: {
@@ -848,6 +906,7 @@ function ReviewCard({
   suggestion?: { points: number; feedback: string };
   busy: boolean;
   onPhoto: () => void;
+  attachPhoto: (file: File) => void;
   suggest: () => void;
   confirm: (points: number, feedback: string) => void;
 }) {
@@ -874,10 +933,8 @@ function ReviewCard({
   const [points, setPoints] = useState(suggestion?.points || 0);
   const [feedback, setFeedback] = useState(suggestion?.feedback || "");
   useEffect(() => {
-    if (suggestion) {
-      setPoints(suggestion.points);
-      setFeedback(suggestion.feedback);
-    }
+    setPoints(suggestion?.points ?? 0);
+    setFeedback(suggestion?.feedback ?? "");
   }, [suggestion?.points, suggestion?.feedback]);
   return (
     <article className="review-card">
@@ -897,6 +954,21 @@ function ReviewCard({
           <Eye size={16} />
           Ver foto privada
         </button>
+      )}
+      {!photo && (
+        <label className="button secondary file-label">
+          Anexar foto como responsável ou professor
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            disabled={busy}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) attachPhoto(file);
+              e.target.value = "";
+            }}
+          />
+        </label>
       )}
       {suggestion && (
         <p className="small muted">

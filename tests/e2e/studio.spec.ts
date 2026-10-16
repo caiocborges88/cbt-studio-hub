@@ -1,7 +1,11 @@
 import { test, expect, type Page } from "@playwright/test";
 async function nav(page: Page, label: string) {
   const menu = page.getByRole("button", { name: "Abrir navegação" });
-  if (await menu.isVisible()) await menu.click();
+  if (
+    (await menu.isVisible()) &&
+    !(await page.locator("aside.sidebar.open").isVisible())
+  )
+    await menu.click();
   await page
     .getByRole("navigation", { name: "Navegação principal" })
     .getByRole("button", { name: label, exact: true })
@@ -213,6 +217,27 @@ test("child invitation creates a restricted student session", async ({
       .getByRole("navigation")
       .getByRole("button", { name: "Criar atividades" }),
   ).toHaveCount(0);
+  await nav(page, "Biblioteca");
+  await page.getByRole("button", { name: "Configurar prática" }).click();
+  await page
+    .getByRole("combobox", { name: "Formato", exact: true })
+    .selectOption("open");
+  await page
+    .getByRole("button", { name: "Praticar com estes filtros" })
+    .first()
+    .click();
+  await expect(
+    page.getByText(
+      "Neste perfil, arquivos devem ser enviados pelo responsável ou professor",
+      { exact: false },
+    ),
+  ).toBeVisible();
+  await expect(page.locator('input[type="file"]')).toHaveCount(0);
+  await page.getByLabel("Desenvolva sua resposta").fill("Resposta sem anexos.");
+  await page.getByRole("button", { name: "Confirmar resposta" }).click();
+  await expect(
+    page.getByText("Resposta recebida para avaliação."),
+  ).toBeVisible();
 });
 test("live challenge can start, accept an answer, advance and publish the tied-rank scoreboard", async ({
   page,

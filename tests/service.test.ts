@@ -51,6 +51,113 @@ async function enroll() {
 }
 const lessonId = "lesson_fundamental-inicial";
 describe("authorization and invitations", () => {
+  it("only educators can confirm an age band, independently of school stage", async () => {
+    const p = await run<Profile>("createProfile", {
+      nickname: "Teste",
+      stage: "superior",
+    });
+    expect(p.ageBand).toBe("up-to-14");
+    await enroll();
+    await expect(
+      run(
+        "setProfileAgeBand",
+        { profileId: "demo-child", ageBand: "15-plus" },
+        child,
+      ),
+    ).rejects.toThrow("educador");
+    const w = await run<Workspace>("workspace", {}, child);
+    await run(
+      "updateProfile",
+      {
+        ...w.profile,
+        profileId: w.profile.id,
+        stage: "superior",
+        ageBand: "15-plus",
+      },
+      child,
+    );
+    expect(
+      (await run<Workspace>("workspace", {}, child)).profile.ageBand,
+    ).not.toBe("15-plus");
+    await run("setProfileAgeBand", {
+      profileId: "demo-child",
+      ageBand: "15-plus",
+    });
+    expect((await run<Workspace>("workspace", {}, child)).profile.ageBand).toBe(
+      "15-plus",
+    );
+  });
+  it("blocks child uploads through submit and lets an educator attach their own photo", async () => {
+    await enroll();
+    await run("setProfileAgeBand", {
+      profileId: "demo-child",
+      ageBand: "up-to-14",
+    });
+    const s = await run<Session>(
+      "start",
+      { lessonId, mode: "practice", type: "open" },
+      child,
+    );
+    const input = {
+      sessionId: s.id,
+      activityId: s.activityIds[0],
+      answer: "Minha resposta",
+    };
+    await expect(
+      run(
+        "submit",
+        { ...input, photoPath: `groups/${groupId}/answers/${child.uid}/photo` },
+        child,
+      ),
+    ).rejects.toThrow("responsável");
+    await run("submit", input, child);
+    const current = await run<{ session: Session }>(
+      "session",
+      { sessionId: s.id },
+      child,
+    );
+    const attemptId = current.session.attempts[0].id;
+    const photoPath = `groups/${groupId}/answers/${adult.uid}/photo`;
+    await expect(
+      run(
+        "attachAnswerPhoto",
+        { sessionId: s.id, attemptId, photoPath },
+        child,
+      ),
+    ).rejects.toThrow("educador");
+    await run("attachAnswerPhoto", { sessionId: s.id, attemptId, photoPath });
+    expect(
+      (await run<{ session: Session }>("session", { sessionId: s.id }, child))
+        .session.attempts[0].photoPath,
+    ).toBe(photoPath);
+    await expect(
+      run("file", { path: photoPath }, child),
+    ).resolves.toBeDefined();
+  });
+  it("allows answer photos for a student confirmed as 15 or older", async () => {
+    await enroll();
+    await run("setProfileAgeBand", {
+      profileId: "demo-child",
+      ageBand: "15-plus",
+    });
+    const s = await run<Session>(
+      "start",
+      { lessonId, mode: "practice", type: "open" },
+      child,
+    );
+    await expect(
+      run(
+        "submit",
+        {
+          sessionId: s.id,
+          activityId: s.activityIds[0],
+          answer: "",
+          photoPath: `groups/${groupId}/answers/${child.uid}/photo`,
+        },
+        child,
+      ),
+    ).resolves.toBeDefined();
+  });
   it("denies unaffiliated users and anonymous group creation", async () => {
     await expect(run("workspace", {}, child)).rejects.toThrow("acesso");
     await expect(
@@ -380,6 +487,26 @@ describe("competition and quotas", () => {
     );
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(3);
     expect(results.filter((r) => r.status === "rejected")).toHaveLength(3);
+  });
+  it("restricts paid jobs to pilot groups even for administrators", async () => {
+    const input = {
+      storagePath: "groups/demo-group/materials/demo-adult/test.pdf",
+      title: "Teste",
+    };
+    deps.aiAllowedGroupIds = [];
+    await expect(run("enqueue", { kind: "pdf", input })).rejects.toThrow(
+      "homologação",
+    );
+    deps.aiAllowedGroupIds = ["another-group"];
+    await expect(run("enqueue", { kind: "pdf", input })).rejects.toThrow(
+      "homologação",
+    );
+    deps.aiAllowedGroupIds = [groupId];
+    const job = await run<{ id: string }>("enqueue", { kind: "pdf", input });
+    deps.aiAllowedGroupIds = [];
+    await expect(run("retryJob", { jobId: job.id })).rejects.toThrow(
+      "homologação",
+    );
   });
   it("rejects a photo path belonging to another user or group", async () => {
     const s = await run<Session>("start", {

@@ -46,6 +46,7 @@ beforeEach(async () => {
       active: true,
       provider: "child",
       role: "student",
+      profileId: "student",
     });
     await setDoc(doc(context.firestore(), "groups/one/members/revoked"), {
       id: "revoked",
@@ -56,6 +57,22 @@ beforeEach(async () => {
     await setDoc(doc(context.firestore(), "groups/one/activities/secret"), {
       solution: 2,
     });
+    await setDoc(doc(context.firestore(), "groups/one/profiles/student"), {
+      child: true,
+      ageBand: "15-plus",
+    });
+    for (const uid of ["under14", "unknownAge"]) {
+      await setDoc(doc(context.firestore(), "groups/one/members/" + uid), {
+        active: true,
+        provider: "child",
+        role: "student",
+        profileId: uid,
+      });
+      await setDoc(doc(context.firestore(), "groups/one/profiles/" + uid), {
+        child: true,
+        ...(uid === "under14" ? { ageBand: "up-to-14" } : {}),
+      });
+    }
   });
 }, 30000);
 afterAll(async () => {
@@ -95,6 +112,46 @@ describe("Firestore: callable-only access", () => {
   });
 });
 describe("Storage: immutable scoped uploads", () => {
+  it("blocks photos and PDFs for children up to 14 and children without a confirmed age band", async () => {
+    for (const uid of ["under14", "unknownAge"]) {
+      const storage = env.authenticatedContext(uid).storage();
+      await assertFails(
+        uploadBytes(
+          ref(storage, `groups/one/answers/${uid}/photo`),
+          new Uint8Array([1]),
+          { contentType: "image/png" },
+        ),
+      );
+      await assertFails(
+        uploadBytes(
+          ref(storage, `groups/one/materials/${uid}/pdf`),
+          new Uint8Array([1]),
+          { contentType: "application/pdf" },
+        ),
+      );
+      await assertFails(
+        updateDoc(
+          doc(
+            env.authenticatedContext(uid).firestore(),
+            `groups/one/profiles/${uid}`,
+          ),
+          { ageBand: "15-plus" },
+        ),
+      );
+    }
+  });
+  it("allows a responsible adult to upload an answer photo", async () => {
+    await assertSucceeds(
+      uploadBytes(
+        ref(
+          env.authenticatedContext("admin").storage(),
+          "groups/one/answers/admin/photo",
+        ),
+        new Uint8Array([1]),
+        { contentType: "image/png" },
+      ),
+    );
+  });
   it("allows a PDF upload by an active educator in their own group and uid", async () => {
     const storage = env.authenticatedContext("admin").storage();
     await assertSucceeds(

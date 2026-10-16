@@ -42,6 +42,12 @@ export const studio = onCall(
           hash: (value) => createHash("sha256").update(value).digest("hex"),
           aiDailyLimit: Number(process.env.AI_DAILY_LIMIT) || 0,
           ocrDailyPageLimit: Number(process.env.OCR_DAILY_PAGE_LIMIT) || 0,
+          aiAllowedGroupIds:
+            process.env.AI_ALLOWED_GROUP_IDS === undefined
+              ? undefined
+              : process.env.AI_ALLOWED_GROUP_IDS.split(",")
+                  .map((id) => id.trim())
+                  .filter(Boolean),
         },
         {
           uid: request.auth.uid,

@@ -18,6 +18,7 @@ import {
 import { generateSchema } from "../../shared/service.js";
 import { generateJson } from "./ai.js";
 import { openPdf } from "./pdf.js";
+import { error as logError } from "firebase-functions/logger";
 
 export async function processJob(groupId: string, jobId: string) {
   const db = getFirestore();
@@ -72,7 +73,17 @@ export async function processJob(groupId: string, jobId: string) {
       leaseUntil: 0,
     });
   };
+  let phase = "authorization";
   try {
+    if (
+      process.env.AI_ALLOWED_GROUP_IDS !== undefined &&
+      !process.env.AI_ALLOWED_GROUP_IDS.split(",")
+        .map((id) => id.trim())
+        .includes(groupId)
+    )
+      throw new Error(
+        "A IA ainda não foi habilitada para este grupo na homologação.",
+      );
     if (job.kind === "pdf") {
       const input = z
         .object({ storagePath: z.string(), title: z.string() })
@@ -84,6 +95,7 @@ export async function processJob(groupId: string, jobId: string) {
       )
         throw new Error("Arquivo fora do grupo.");
       const file = getStorage().bucket().file(input.storagePath);
+      phase = "pdf-metadata";
       const [meta] = await file.getMetadata();
       const maxMb = Math.min(
         15,
@@ -94,9 +106,11 @@ export async function processJob(groupId: string, jobId: string) {
         meta.contentType !== "application/pdf"
       )
         throw new Error("Envie um PDF de até " + maxMb + " MB.");
+      phase = "pdf-download";
       const [bytes] = await file.download();
       if (bytes.subarray(0, 5).toString() !== "%PDF-")
         throw new Error("O arquivo não é um PDF válido.");
+      phase = "pdf-parse";
       const pdf = await openPdf(
         new Uint8Array(bytes),
         Math.min(100, Number(process.env.MAX_PDF_PAGES) || 100),
@@ -112,6 +126,7 @@ export async function processJob(groupId: string, jobId: string) {
             pages.push(cache.data() as Page);
             continue;
           }
+          phase = "pdf-text";
           let text = await pdf.text(number);
           let needsReview = false;
           let chapter = "";
@@ -136,6 +151,7 @@ export async function processJob(groupId: string, jobId: string) {
               });
             });
             const pageBytes = await pdf.pagePdf(number);
+            phase = "pdf-ocr";
             const extracted = await generateJson(
               z.object({
                 text: z.string().max(40000),
@@ -205,6 +221,7 @@ export async function processJob(groupId: string, jobId: string) {
       await root.collection("materials").doc(material.id).set(material);
       await done(material.id);
     } else if (job.kind === "generate") {
+      phase = "generation";
       const input = generateSchema.parse(job.input);
       const material = (
         await root.collection("materials").doc(input.materialId).get()
@@ -378,6 +395,8 @@ export async function processJob(groupId: string, jobId: string) {
         const latest = (await tx.get(attemptRef)).data() as Attempt | undefined;
         if (latest?.review !== "pending")
           throw new Error("A resposta já foi corrigida.");
+        if (latest.photoPath !== attempt.photoPath)
+          throw new Error("A resposta mudou. Solicite uma nova revisão.");
         tx.update(attemptRef, { suggestion });
         tx.update(jobRef, {
           status: "done",
@@ -389,6 +408,17 @@ export async function processJob(groupId: string, jobId: string) {
       });
     }
   } catch (error) {
+    const status =
+      (error as { status?: unknown; code?: unknown })?.status ??
+      (error as { code?: unknown })?.code;
+    logError("learning_job_failed", {
+      groupId,
+      jobId,
+      kind: job.kind,
+      phase,
+      status: typeof status === "number" ? status : null,
+      category: error instanceof z.ZodError ? "schema" : "processing",
+    });
     const raw = error instanceof Error ? error.message : "";
     // Never return provider payloads, credentials, submitted answers or signed URLs in errors.
     const message =
