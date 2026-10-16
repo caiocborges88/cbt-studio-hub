@@ -1,0 +1,48 @@
+{
+  "name": "cbt-studio-hub",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "functions"
+  ],
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build && npm run build -w functions",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "vitest run --exclude tests/rules.test.ts --exclude tests/cloud.test.ts --exclude tests/jobs.test.ts --exclude tests/e2e/**",
+    "test:rules": "firebase emulators:exec --project demo-cbt-studio --only firestore,storage \"vitest run tests/rules.test.ts tests/cloud.test.ts tests/jobs.test.ts --fileParallelism=false\"",
+    "test:e2e": "playwright test",
+    "emulators": "npm run build -w functions && firebase emulators:start --project demo-cbt-studio",
+    "check": "npm test && npm run build",
+    "migrate:legacy": "tsx scripts/migrate-legacy.ts"
+  },
+  "dependencies": {
+    "@fontsource-variable/dm-sans": "^5.3.0",
+    "@fontsource-variable/manrope": "^5.3.0",
+    "firebase": "^12.0.0",
+    "katex": "^0.16.22",
+    "lucide-react": "^0.468.0",
+    "pdfjs-dist": "^5.4.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.0.0",
+    "rehype-katex": "^7.0.0",
+    "remark-math": "^6.0.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "firebase-tools": "^15.0.0",
+    "prettier": "^3.9.10",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0",
+    "vitest": "^3.2.0"
+  }
+}

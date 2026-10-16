@@ -67,3 +67,14 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+dist/
+functions/lib/
+.env.*
+!.env.example
+!functions/.env.example
+.secret.local
+test-results/
+playwright-report/
+.local/
+*.tsbuildinfo

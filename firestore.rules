@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // All application documents (groups, members, profiles, materials, lessons,
+    // activities with solutions, sessions, jobs, invites, usage and receipts)
+    // are read/written exclusively through authenticated, App Check protected
+    // callable Functions. Admin SDK validates ownership, roles and schema.
+    // No client queries or writes are used, including by group administrators.
+    // Historical cbt_provas / cbt_rankings remain server-only archives.
+    function isAuthenticated() { return request.auth != null; }
+    function isOwner(uid) { return isAuthenticated() && request.auth.uid == uid; }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
