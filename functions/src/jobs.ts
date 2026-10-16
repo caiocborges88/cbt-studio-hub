@@ -16,6 +16,7 @@ import {
   validateActivity,
 } from "../../shared/domain.js";
 import { generateSchema } from "../../shared/service.js";
+import { dailyQuotaReached } from "../../shared/quota.js";
 import { generateJson } from "./ai.js";
 import { openPdf } from "./pdf.js";
 import { error as logError } from "firebase-functions/logger";
@@ -141,7 +142,7 @@ export async function processJob(groupId: string, jobId: string) {
               if (counted.exists) return;
               const used = quota.data()?.pages || 0;
               const limit = Number(process.env.OCR_DAILY_PAGE_LIMIT) || 0;
-              if (used >= limit)
+              if (dailyQuotaReached(limit, used))
                 throw new Error(
                   "Cota diária de páginas escaneadas atingida ou não configurada.",
                 );

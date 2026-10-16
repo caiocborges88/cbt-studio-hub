@@ -26,7 +26,7 @@ Configure o segredo no projeto correto:
 npx firebase functions:secrets:set GEMINI_API_KEY --project SEU_PROJETO_HOMOLOGACAO
 ```
 
-Copie `functions/.env.example` para `functions/.env.SEU_PROJETO_HOMOLOGACAO`. Escolha cotas positivas para `AI_DAILY_LIMIT` (solicitações por grupo/dia UTC) e `OCR_DAILY_PAGE_LIMIT` (páginas escaneadas por grupo/dia UTC). Zero bloqueia o processamento pago. Por exemplo, um piloto pode começar com 10 solicitações e 50 páginas escaneadas diárias por grupo.
+Copie `functions/.env.example` para `functions/.env.SEU_PROJETO_HOMOLOGACAO`. Configure `AI_DAILY_LIMIT` (solicitações por grupo/dia UTC) e `OCR_DAILY_PAGE_LIMIT` (páginas escaneadas por grupo/dia UTC): inteiros positivos limitam o consumo diário, zero bloqueia o processamento pago e `-1` remove apenas o limite diário. Outros valores inválidos bloqueiam o processamento. O uso continua contabilizado, inclusive com `-1`; permissões, limites por arquivo e bloqueios financeiros permanecem independentes.
 
 `GEMINI_MODEL` é configurável no servidor; o padrão é `gemini-3.8-flash`, listado como estável na documentação oficial consultada em 15/10/2026. Confirme disponibilidade para o projeto antes de ativar. Nunca coloque a chave Gemini em variáveis `VITE_*`.
 
@@ -80,6 +80,6 @@ A IA foi suspensa por configuração no ambiente do piloto: `AI_DAILY_LIMIT=0`, 
 
 Documentação dos bloqueios: https://docs.cloud.google.com/billing/docs/how-to/budgets-spend-caps
 
-Após a recarga informada pelo proprietário em 16/10/2026 e uma chamada real bem-sucedida, a IA foi reativada somente para o grupo piloto: cinco trabalhos e cinco páginas de OCR por dia. O bloqueio mensal de Gemini permanece em R$ 4 e o orçamento global em R$ 10. A recarga não autoriza ampliar esses valores ou habilitar recarga automática.
+Após a recarga informada pelo proprietário em 16/10/2026 e uma chamada real bem-sucedida, a IA foi reativada somente para o grupo piloto. A pedido do proprietário, os limites diários de trabalhos e páginas de OCR foram removidos (`AI_DAILY_LIMIT=-1`, `OCR_DAILY_PAGE_LIMIT=-1`), mantendo a lista restrita ao grupo piloto. Cada PDF continua limitado a 100 páginas e 15 MB. O bloqueio mensal de Gemini permanece em R$ 4 e o orçamento global em R$ 10. A liberação diária não autoriza ampliar esses valores ou habilitar recarga automática.
 
 A geração usa lotes de até quatro atividades de um único formato para limitar a complexidade do JSON Schema enviado ao Gemini. Cada lote validado recebe um checkpoint privado; a execução continua após quatro lotes novos por invocação e retoma os lotes concluídos sem novas chamadas ao provedor. A resposta continua sujeita à validação original de tipos, respostas e referências, e é salva como rascunho para revisão.

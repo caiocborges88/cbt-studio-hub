@@ -563,6 +563,44 @@ describe("competition and quotas", () => {
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(3);
     expect(results.filter((r) => r.status === "rejected")).toHaveLength(3);
   });
+  it("allows unlimited daily jobs while counting usage and preserving group restrictions", async () => {
+    deps.aiDailyLimit = -1;
+    deps.aiAllowedGroupIds = [groupId];
+    expect((await run<Workspace>("workspace")).ai.available).toBe(true);
+    const path = `groups/${groupId}/usage/${new Date(time).toISOString().slice(0, 10)}`;
+    await db.atomic(async (s) => s.set(path, { calls: 1000, pages: 20 }));
+    const input = {
+      storagePath: "groups/demo-group/materials/demo-adult/test.pdf",
+      title: "Teste",
+    };
+    await Promise.all(
+      Array.from({ length: 6 }, () => run("enqueue", { kind: "pdf", input })),
+    );
+    await db.atomic(async (s) => {
+      expect(await s.get(path)).toEqual({ calls: 1006, pages: 20 });
+    });
+    deps.aiAllowedGroupIds = [];
+    expect((await run<Workspace>("workspace")).ai.available).toBe(false);
+    await expect(run("enqueue", { kind: "pdf", input })).rejects.toThrow(
+      "homologação",
+    );
+  });
+  it.each([0, -2, 1.5, NaN])(
+    "keeps invalid or paused daily job limits disabled (%s)",
+    async (limit) => {
+      deps.aiDailyLimit = limit;
+      expect((await run<Workspace>("workspace")).ai.available).toBe(false);
+      await expect(
+        run("enqueue", {
+          kind: "pdf",
+          input: {
+            storagePath: "groups/demo-group/materials/demo-adult/test.pdf",
+            title: "Teste",
+          },
+        }),
+      ).rejects.toThrow("administrador");
+    },
+  );
   it("restricts paid jobs to pilot groups even for administrators", async () => {
     const input = {
       storagePath: "groups/demo-group/materials/demo-adult/test.pdf",

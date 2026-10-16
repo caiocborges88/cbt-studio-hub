@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { dailyQuotaEnabled, dailyQuotaReached } from "./quota.js";
 import {
   type Activity,
   type Answer,
@@ -401,8 +402,7 @@ export async function execute(
         return {
           ai: {
             available:
-              Number.isInteger(deps.aiDailyLimit) &&
-              deps.aiDailyLimit > 0 &&
+              dailyQuotaEnabled(deps.aiDailyLimit) &&
               (!deps.aiAllowedGroupIds ||
                 deps.aiAllowedGroupIds.includes(groupId)),
             message:
@@ -1229,7 +1229,7 @@ export async function execute(
             fail("Resposta pendente não encontrada.");
         }
         const limit = deps.aiDailyLimit;
-        if (!Number.isInteger(limit) || limit < 1)
+        if (!dailyQuotaEnabled(limit))
           fail(
             "A cota de IA ainda não foi configurada pelo administrador.",
             "resource-exhausted",
@@ -1239,7 +1239,7 @@ export async function execute(
         const usage = (await s.get<{ calls: number; pages: number }>(
           quotaPath,
         )) || { calls: 0, pages: 0 };
-        if (usage.calls >= limit)
+        if (dailyQuotaReached(limit, usage.calls))
           fail("Cota diária de IA deste grupo atingida.", "resource-exhausted");
         const job: Job = {
           id: deps.id(),

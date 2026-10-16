@@ -300,6 +300,28 @@ describe("asynchronous worker with provider mocked, real emulator persistence", 
       output?.pages.every((p: { needsReview: boolean }) => p.needsReview),
     ).toBe(true);
   }, 30000);
+  it("removes the daily OCR cap while preserving usage and page checkpoints", async () => {
+    process.env.OCR_DAILY_PAGE_LIMIT = "-1";
+    const path = await uploadPdf(2, true);
+    mocked.mockResolvedValue({
+      text: "Texto reconhecido nesta página para estudar.",
+      chapter: "",
+      illegible: false,
+      mathNeedsReview: false,
+    });
+    const ref = await job("pdf", { storagePath: path, title: "Escaneado" });
+    const usage = getFirestore().doc(
+      `groups/${groupId}/usage/${new Date((await ref.get()).data()!.createdAt).toISOString().slice(0, 10)}`,
+    );
+    await usage.set({ calls: 1000, pages: 1000 });
+    await processJob(groupId, ref.id);
+    expect((await ref.get()).data()?.status).toBe("done");
+    expect((await usage.get()).data()).toEqual({ calls: 1000, pages: 1002 });
+    await ref.update({ status: "queued" });
+    await processJob(groupId, ref.id);
+    expect(mocked).toHaveBeenCalledTimes(2);
+    expect((await usage.get()).data()?.pages).toBe(1002);
+  }, 30000);
   it("adds a suggestion without assigning a grade or confirming a review", async () => {
     const activity = examples("superior").find((a) => a.type === "open")!;
     await getFirestore()
