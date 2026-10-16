@@ -4,7 +4,6 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
-import { defineSecret } from "firebase-functions/params";
 import { z } from "zod";
 import { execute, AppError } from "../../shared/service.js";
 import { firestoreDatabase } from "./store.js";
@@ -12,7 +11,6 @@ import { processJob } from "./jobs.js";
 
 initializeApp();
 setGlobalOptions({ region: "southamerica-east1", maxInstances: 5 });
-const geminiKey = defineSecret("GEMINI_API_KEY");
 export const studio = onCall(
   {
     enforceAppCheck: process.env.FUNCTIONS_EMULATOR !== "true",
@@ -89,7 +87,7 @@ export const studio = onCall(
 export const learningJob = onDocumentWritten(
   {
     document: "groups/{groupId}/jobs/{jobId}",
-    secrets: [geminiKey],
+    secrets: ["GEMINI_API_KEY"],
     timeoutSeconds: 540,
     memory: "1GiB",
     maxInstances: 3,

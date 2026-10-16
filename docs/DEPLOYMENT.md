@@ -1,6 +1,6 @@
 # Homologação e implantação
 
-Nenhum comando de implantação foi executado durante o desenvolvimento. O projeto original usa Firestore Standard no banco `(default)`. Mantenha a mesma edição; não reprovisione o banco para instalar esta versão.
+O projeto original usa Firestore Standard no banco `(default)`. Mantenha a mesma edição; não reprovisione o banco para instalar esta versão. Este guia permite implantação em etapas e não confirma, por si só, quais etapas já foram executadas em um projeto.
 
 ## 1. Ambiente de homologação
 
@@ -11,6 +11,14 @@ Não crie contas infantis por e-mail; a entrada por convite usa Firebase Anonymo
 Copie `.env.example` para `.env.local` e preencha a configuração pública do aplicativo Web de homologação. Defina `VITE_APPCHECK_SITE_KEY`; a ausência dela em produção não desativa a exigência de App Check no servidor.
 
 ## 2. IA central e cotas
+
+O backend pode ser implantado em duas etapas. Antes de cadastrar a chave Gemini, configure `AI_DAILY_LIMIT=0` e `OCR_DAILY_PAGE_LIMIT=0` no arquivo de ambiente do projeto e implante apenas a API e o Storage:
+
+```sh
+npx -y firebase-tools@latest deploy --only functions:learning:studio,storage --project SEU_PROJETO_HOMOLOGACAO
+```
+
+O segredo `GEMINI_API_KEY` fica vinculado somente ao worker `learningJob`. Depois de cadastrar o segredo, implante esse worker com `--only functions:learning:learningJob`. Implantar a API isoladamente não ativa a geração por IA. Uma prévia do Hosting compartilha o backend do projeto: no projeto existente, preserve as regras e os provedores anteriores até preparar a migração e a troca coordenada.
 
 Configure o segredo no projeto correto:
 
