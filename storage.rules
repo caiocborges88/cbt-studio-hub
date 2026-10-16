@@ -1,0 +1,38 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    function membership(groupId) {
+      return firestore.get(/databases/(default)/documents/groups/$(groupId)/members/$(request.auth.uid)).data;
+    }
+    function active(groupId) {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/groups/$(groupId)/members/$(request.auth.uid))
+        && membership(groupId).active == true;
+    }
+    function isEditor(groupId) {
+      return active(groupId) && membership(groupId).provider == 'adult'
+        && membership(groupId).role in ['admin', 'educator'];
+    }
+    function studentCanUploadAnswers(groupId) {
+      let member = membership(groupId);
+      let profile = firestore.get(/databases/(default)/documents/groups/$(groupId)/profiles/$(member.profileId)).data;
+      return (('ageBand' in profile) && profile.ageBand == '15-plus')
+        || (!('ageBand' in profile) && profile.child == false && member.provider == 'adult');
+    }
+    match /groups/{groupId}/materials/{uid}/{fileId} {
+      allow create: if resource == null && isEditor(groupId) && request.auth.uid == uid
+        && request.resource.size > 0 && request.resource.size <= 15 * 1024 * 1024
+        && request.resource.contentType == 'application/pdf';
+      // Downloads use short-lived server-signed URLs after membership checks.
+      allow read, update, delete: if false;
+    }
+    match /groups/{groupId}/answers/{uid}/{fileId} {
+      allow create: if resource == null && active(groupId) && (isEditor(groupId) || studentCanUploadAnswers(groupId)) && request.auth.uid == uid
+        && request.resource.size > 0 && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp'];
+      allow read, update, delete: if false;
+    }
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}
