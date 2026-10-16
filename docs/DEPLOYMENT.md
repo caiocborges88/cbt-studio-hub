@@ -79,3 +79,7 @@ O proprietário autorizou até R$ 10/mês para o projeto. A configuração real 
 A IA foi suspensa por configuração no ambiente do piloto: `AI_DAILY_LIMIT=0`, `OCR_DAILY_PAGE_LIMIT=0`, `AI_ALLOWED_GROUP_IDS=`. Não restaurar as cotas anteriores nem comprar créditos sem decisão explícita do proprietário. A configuração de exemplo deste repositório já usa cotas zero por padrão.
 
 Documentação dos bloqueios: https://docs.cloud.google.com/billing/docs/how-to/budgets-spend-caps
+
+Após a recarga informada pelo proprietário em 16/10/2026 e uma chamada real bem-sucedida, a IA foi reativada somente para o grupo piloto: cinco trabalhos e cinco páginas de OCR por dia. O bloqueio mensal de Gemini permanece em R$ 4 e o orçamento global em R$ 10. A recarga não autoriza ampliar esses valores ou habilitar recarga automática.
+
+A geração usa lotes de até quatro atividades de um único formato para limitar a complexidade do JSON Schema enviado ao Gemini. Cada lote validado recebe um checkpoint privado; a execução continua após quatro lotes novos por invocação e retoma os lotes concluídos sem novas chamadas ao provedor. A resposta continua sujeita à validação original de tipos, respostas e referências, e é salva como rascunho para revisão.

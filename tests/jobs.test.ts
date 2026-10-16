@@ -91,6 +91,76 @@ async function uploadPdf(pages: number, blank = false) {
   return path;
 }
 describe("asynchronous worker with provider mocked, real emulator persistence", () => {
+  it("resumes bounded generation batches without repeating completed provider calls", async () => {
+    const m = await material();
+    const a = examples("superior")[0];
+    const answers = (count: number) => ({
+      activities: Array.from({ length: count }, () => a),
+    });
+    mocked
+      .mockResolvedValueOnce(answers(4))
+      .mockRejectedValueOnce(new Error("Interrupção temporária"));
+    const ref = await job("generate", {
+      title: "Pesquisa",
+      subject: "Ciência",
+      stage: "superior",
+      difficulty: "pratica",
+      objectives: "Interpretar evidências",
+      count: 10,
+      types: ["choice"],
+      materialId: m.id,
+      pageNumbers: [1],
+    });
+    await processJob(groupId, ref.id);
+    expect((await ref.get()).data()?.status).toBe("failed");
+    expect((await ref.collection("private").doc("batch_0").get()).exists).toBe(
+      true,
+    );
+    expect((await ref.collection("private").doc("batch_1").get()).exists).toBe(
+      false,
+    );
+    mocked.mockResolvedValueOnce(answers(4)).mockResolvedValueOnce(answers(2));
+    await ref.update({ status: "queued" });
+    await processJob(groupId, ref.id);
+    expect(mocked).toHaveBeenCalledTimes(4);
+    expect((await ref.get()).data()?.status).toBe("done");
+    const lesson = (
+      await getFirestore().doc(`groups/${groupId}/lessons/${ref.id}`).get()
+    ).data();
+    expect(lesson?.activityIds).toHaveLength(10);
+    expect(lesson?.published).toBe(false);
+  }, 30000);
+  it("continues large generations after four provider batches per invocation", async () => {
+    const m = await material();
+    const a = examples("superior")[0];
+    mocked.mockImplementation(async (_schema, prompt) => ({
+      activities: Array.from(
+        { length: Number(prompt.match(/Crie exatamente (\d+)/)?.[1]) },
+        () => a,
+      ),
+    }));
+    const ref = await job("generate", {
+      title: "Pesquisa",
+      subject: "Ciência",
+      stage: "superior",
+      difficulty: "pratica",
+      objectives: "Interpretar evidências",
+      count: 30,
+      types: ["choice"],
+      materialId: m.id,
+      pageNumbers: [1],
+    });
+    await processJob(groupId, ref.id);
+    expect((await ref.get()).data()?.status).toBe("queued");
+    expect(mocked).toHaveBeenCalledTimes(4);
+    await processJob(groupId, ref.id);
+    expect((await ref.get()).data()?.status).toBe("done");
+    expect(mocked).toHaveBeenCalledTimes(8);
+    const lesson = (
+      await getFirestore().doc(`groups/${groupId}/lessons/${ref.id}`).get()
+    ).data();
+    expect(lesson?.activityIds).toHaveLength(30);
+  }, 30000);
   it("logs failure phases without logging provider payloads or student answers", async () => {
     const m = await material();
     mocked.mockRejectedValue(new Error("PRIVATE ANSWER AND CREDENTIAL"));
