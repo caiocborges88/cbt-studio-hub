@@ -51,6 +51,81 @@ async function enroll() {
 }
 const lessonId = "lesson_fundamental-inicial";
 describe("authorization and invitations", () => {
+  it("does not replay a cached response after access is revoked", async () => {
+    const invitation = await enroll();
+    const requestId = crypto.randomUUID();
+    const input = { lessonId, mode: "trail" };
+    await run("start", input, child, requestId);
+    await run("revokeInvite", { inviteId: invitation.id });
+    await expect(run("start", input, child, requestId)).rejects.toThrow(
+      "acesso mudou",
+    );
+  });
+  it("binds idempotent responses to the full payload while ignoring object key order", async () => {
+    const requestId = crypto.randomUUID();
+    const first = await run<Profile>(
+      "createProfile",
+      { nickname: "Primeiro", stage: "superior" },
+      adult,
+      requestId,
+    );
+    const replay = await run<Profile>(
+      "createProfile",
+      { stage: "superior", nickname: "Primeiro" },
+      adult,
+      requestId,
+    );
+    expect(replay.id).toBe(first.id);
+    await expect(
+      run(
+        "createProfile",
+        { nickname: "Outro", stage: "superior" },
+        adult,
+        requestId,
+      ),
+    ).rejects.toThrow("reutilizado");
+    await expect(
+      run(
+        "createProfile",
+        { groupId: "other", nickname: "Primeiro", stage: "superior" },
+        adult,
+        requestId,
+      ),
+    ).rejects.toThrow("reutilizado");
+  });
+  it("does not replay educator invitations after the admin loses their role", async () => {
+    const requestId = crypto.randomUUID();
+    const input = { nickname: "Professor", role: "educator", child: false };
+    await run("invite", input, adult, requestId);
+    const path = `groups/${groupId}/members/${adult.uid}`;
+    db.data[path] = { ...(db.data[path] as object), role: "educator" };
+    await expect(run("invite", input, adult, requestId)).rejects.toThrow(
+      "acesso mudou",
+    );
+  });
+  it("reports paused AI without disabling manual materials or arithmetic", async () => {
+    deps.aiDailyLimit = 0;
+    expect((await run<Workspace>("workspace")).ai.available).toBe(false);
+    await expect(
+      run("saveMaterial", {
+        title: "Leitura",
+        pages: [
+          {
+            number: 1,
+            chapter: "",
+            text: "Texto para estudar.",
+            needsReview: false,
+          },
+        ],
+        reviewed: true,
+      }),
+    ).resolves.toBeDefined();
+    deps.aiDailyLimit = 3;
+    deps.aiAllowedGroupIds = [];
+    expect((await run<Workspace>("workspace")).ai.available).toBe(false);
+    deps.aiAllowedGroupIds = [groupId];
+    expect((await run<Workspace>("workspace")).ai.available).toBe(true);
+  });
   it("only educators can confirm an age band, independently of school stage", async () => {
     const p = await run<Profile>("createProfile", {
       nickname: "Teste",

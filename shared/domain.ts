@@ -242,6 +242,7 @@ export interface Invite {
   used: boolean;
 }
 export interface Workspace {
+  ai: { available: boolean; message: string };
   group: Group;
   role: Role;
   profile: Profile;

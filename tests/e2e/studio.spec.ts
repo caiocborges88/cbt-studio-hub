@@ -148,6 +148,59 @@ test("create, preview, publish and play programmatically verified math", async (
     page.getByText("Resposta numérica", { exact: true }),
   ).toBeVisible();
 });
+
+test("paused AI blocks PDF uploads while manual reading activities remain usable", async ({
+  page,
+}) => {
+  await nav(page, "Criar atividades");
+  await expect(page.getByLabel("Disponibilidade da IA")).toContainText(
+    "IA pausada",
+  );
+  await page.getByText("Adicionar novo material", { exact: true }).click();
+  await expect(page.locator('input[type="file"]')).toBeDisabled();
+  await page
+    .getByLabel("Nome do material", { exact: true })
+    .fill("Leitura sem IA");
+  await page
+    .getByPlaceholder("Cole o texto.", { exact: false })
+    .fill(
+      "Lia voltou à horta para regar as plantas, pois a terra estava seca.",
+    );
+  await page
+    .getByRole("button", { name: "Importar texto", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Confirmar revisão do material" })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Gerar atividades para revisão" }),
+  ).toBeDisabled();
+  await page.getByLabel("Título da trilha").fill("Interpretação sem IA");
+  await page.getByLabel("Disciplina", { exact: true }).fill("Português");
+  await page
+    .getByRole("button", { name: "Revisar atividades", exact: false })
+    .click();
+  await page.getByLabel("Adicionar formato").selectOption("open");
+  await page
+    .getByRole("button", { name: "Adicionar atividade", exact: true })
+    .click();
+  await page
+    .getByRole("textbox", { name: "Enunciado", exact: true })
+    .fill("Por que Lia voltou à horta?");
+  await page.getByRole("button", { name: "Publicar trilha" }).click();
+  await expect(page.getByRole("status")).toContainText("publicada");
+  await nav(page, "Biblioteca");
+  await page
+    .getByRole("button", { name: "Estudar Interpretação sem IA" })
+    .click();
+  await page
+    .getByLabel("Desenvolva sua resposta")
+    .fill("Para regar as plantas porque a terra estava seca.");
+  await page.getByRole("button", { name: "Confirmar resposta" }).click();
+  await expect(
+    page.getByText("Resposta recebida para avaliação."),
+  ).toBeVisible();
+});
 test("classification and open responses in practice mode", async ({ page }) => {
   await nav(page, "Biblioteca");
   await page.getByRole("button", { name: "Configurar prática" }).click();

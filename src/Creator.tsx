@@ -677,6 +677,12 @@ export function Creator() {
         title="Estúdio de atividades"
         text="Textos, livros, fórmulas e novas ideias. Você escolhe o conteúdo e a profundidade."
       />
+      {!w.ai?.available && (
+        <aside className="panel" aria-label="Disponibilidade da IA">
+          {w.ai?.message ||
+            "IA indisponível. Use textos, o editor manual ou exercícios de matemática."}
+        </aside>
+      )}
       <div className="tabs">
         <button
           className={tab === "material" ? "active" : ""}
@@ -862,7 +868,7 @@ export function Creator() {
                   <input
                     type="file"
                     accept="application/pdf"
-                    disabled={busy}
+                    disabled={busy || !w.ai?.available}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file)
@@ -1027,6 +1033,7 @@ export function Creator() {
               className="button primary"
               disabled={
                 busy ||
+                !w.ai?.available ||
                 !material?.reviewed ||
                 !pages.length ||
                 !selectedTypes.length
@@ -1172,7 +1179,9 @@ export function Creator() {
               }
               remove={() => setActivities(activities.filter((_, n) => n !== i))}
               regenerate={
-                lessonId && material ? () => generate(a.id) : undefined
+                w.ai?.available && lessonId && material
+                  ? () => generate(a.id)
+                  : undefined
               }
             />
           ))}
@@ -1233,7 +1242,7 @@ export function Creator() {
                     (job.leaseUntil || Infinity) < Date.now())) && (
                   <button
                     className="button secondary"
-                    disabled={busy}
+                    disabled={busy || !w.ai?.available}
                     onClick={() =>
                       task(async () => {
                         await run("retryJob", { jobId: job.id });

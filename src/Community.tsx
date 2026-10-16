@@ -995,7 +995,11 @@ function ReviewCard({
         </label>
       </div>
       <div className="inline-actions">
-        <button className="button secondary" disabled={busy} onClick={suggest}>
+        <button
+          className="button secondary"
+          disabled={busy || !workspace.ai?.available}
+          onClick={suggest}
+        >
           <Sparkles size={16} />
           Pedir sugestão à IA
         </button>
@@ -1008,6 +1012,12 @@ function ReviewCard({
           Confirmar avaliação
         </button>
       </div>
+      {!workspace.ai?.available && (
+        <p className="small muted">
+          A sugestão de IA está pausada. Você pode avaliar a resposta e
+          confirmar manualmente.
+        </p>
+      )}
     </article>
   );
 }

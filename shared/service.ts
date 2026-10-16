@@ -128,11 +128,54 @@ export async function execute(
       "file",
       "reviewContext",
     ].includes(action);
-    // Receipts are bound to identity and operation; permission checks still run on each new request.
+    const fingerprint = deps.hash(
+      JSON.stringify(raw, (_key, value) =>
+        value && typeof value === "object" && !Array.isArray(value)
+          ? Object.fromEntries(
+              Object.keys(value)
+                .sort()
+                .map((key) => [key, value[key]]),
+            )
+          : value,
+      ) ?? "null",
+    );
+    type ReceiptScope = {
+      groupId: string;
+      role: Member["role"];
+      profileId: string;
+      provider: Member["provider"];
+      adult: boolean;
+    };
     if (mutation) {
-      const old = await s.get<{ action: string; result: unknown }>(receiptPath);
+      const old = await s.get<{
+        action: string;
+        result: unknown;
+        fingerprint?: string;
+        scope?: ReceiptScope;
+        createdAt: number;
+      }>(receiptPath);
       if (old) {
-        if (old.action !== action) fail("Identificador reutilizado.");
+        if (old.action !== action || old.fingerprint !== fingerprint)
+          fail("Identificador reutilizado. Envie uma nova solicitação.");
+        if (!old.scope || old.createdAt < now - 7 * 86400000)
+          fail(
+            "Solicitação antiga. Envie uma nova solicitação.",
+            "failed-precondition",
+          );
+        const member = await s.get<Member>(
+          ref(old.scope.groupId, "members", auth.uid),
+        );
+        if (
+          !member?.active ||
+          member.role !== old.scope.role ||
+          member.profileId !== old.scope.profileId ||
+          member.provider !== old.scope.provider ||
+          auth.adult !== old.scope.adult
+        )
+          fail(
+            "Seu acesso mudou. Envie uma nova solicitação.",
+            "permission-denied",
+          );
         return old.result;
       }
     }
@@ -356,6 +399,15 @@ export async function execute(
           lessons.filter((l) => l.published).map((l) => l.materialId),
         );
         return {
+          ai: {
+            available:
+              Number.isInteger(deps.aiDailyLimit) &&
+              deps.aiDailyLimit > 0 &&
+              (!deps.aiAllowedGroupIds ||
+                deps.aiAllowedGroupIds.includes(groupId)),
+            message:
+              "IA pausada neste grupo. Você pode importar texto, criar atividades manualmente e usar exercícios de matemática.",
+          },
           group,
           role: member.role,
           profile,
@@ -1265,13 +1317,30 @@ export async function execute(
       fail("Operação desconhecida.");
     };
     const result = await run();
-    if (mutation)
+    if (mutation) {
+      const groupId =
+        action === "createGroup"
+          ? (result as Group).id
+          : action === "redeem"
+            ? (result as { groupId: string }).groupId
+            : common.parse(raw).groupId;
+      const member = await s.get<Member>(ref(groupId, "members", auth.uid));
+      if (!member) fail("Participação não encontrada.", "permission-denied");
       s.set(receiptPath, {
         action,
+        fingerprint,
+        scope: {
+          groupId,
+          role: member.role,
+          profileId: member.profileId,
+          provider: member.provider,
+          adult: auth.adult,
+        } satisfies ReceiptScope,
         result,
         createdAt: now,
         expiresAt: new Date(now + 7 * 86400000),
       });
+    }
     return result;
   });
 }
