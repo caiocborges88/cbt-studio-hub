@@ -71,3 +71,11 @@ Antes da troca, faça backup do Firestore, execute a migração primeiro sem `--
 As novas regras tornam as coleções antigas inacessíveis pelo navegador. Portanto, não implante as regras novas isoladamente sobre a interface antiga. A troca deve incluir Functions, regras e frontend compatíveis.
 
 Rollback: restaure o release anterior do Hosting e as regras anteriores guardadas no backup de implantação. Os originais e os históricos não são apagados pelo script. A pasta `legacy/` é referência do frontend anterior; não contém um backup das regras que estavam configuradas no console.
+
+## Piloto pessoal e orçamento
+
+O proprietário autorizou até R$ 10/mês para o projeto. A configuração real usa alertas de orçamento global de R$ 10 e bloqueios nativos mensais menores: Gemini R$ 4, Cloud Run R$ 2 e Cloud Run functions R$ 1. Os R$ 3 restantes são margem para serviços não cobertos. O orçamento global não bloqueia o projeto inteiro, e atrasos de contabilização, requisições em andamento e custos persistentes podem gerar excedentes; não prometer teto absoluto na fatura.
+
+A IA foi suspensa por configuração no ambiente do piloto: `AI_DAILY_LIMIT=0`, `OCR_DAILY_PAGE_LIMIT=0`, `AI_ALLOWED_GROUP_IDS=`. Não restaurar as cotas anteriores nem comprar créditos sem decisão explícita do proprietário. A configuração de exemplo deste repositório já usa cotas zero por padrão.
+
+Documentação dos bloqueios: https://docs.cloud.google.com/billing/docs/how-to/budgets-spend-caps
